@@ -5,3 +5,4 @@ playwright-report/
 .vite/
 *.tsbuildinfo
 .DS_Store
+.serena/

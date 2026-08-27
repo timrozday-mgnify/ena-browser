@@ -1,0 +1,33 @@
+[
+  {
+    "accession": "PRJEB10001",
+    "secondary_accession": "ERP110001",
+    "alias": "mimicc-study-01",
+    "title": "MIMICC gut metagenome pilot",
+    "status": "PRIVATE",
+    "hold_until_date": "2026-12-01",
+    "first_public": ""
+  },
+  {
+    "accession": "PRJEB10002",
+    "secondary_accession": "ERP110002",
+    "alias": "mimicc-study-02",
+    "title": "MIMICC soil metagenome survey",
+    "status": "PUBLIC",
+    "first_public": "2025-04-02"
+  },
+  {
+    "accession": "",
+    "secondary_accession": "ERP110003",
+    "alias": "mimicc-study-03",
+    "title": "Withdrawn pilot",
+    "status": "CANCELLED"
+  },
+  {
+    "accession": "PRJEB10004",
+    "secondary_accession": "ERP110004",
+    "alias": "mimicc-study-04",
+    "title": "Suppressed duplicate submission",
+    "status": "SUPPRESSED"
+  }
+]

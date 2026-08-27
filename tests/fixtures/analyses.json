@@ -1,0 +1,19 @@
+[
+  {
+    "accession": "ERZ2000001",
+    "alias": "mimicc-mag-A",
+    "title": "MAG assembly, donor A",
+    "study_accession": "PRJEB10001",
+    "status": "PRIVATE",
+    "analysis_type": "SEQUENCE_ASSEMBLY"
+  },
+  {
+    "accession": "",
+    "secondary_accession": "ERZ2000002",
+    "alias": "mimicc-mag-B",
+    "title": "MAG assembly, donor B",
+    "study_accession": "PRJEB10001",
+    "status": "SUPPRESSED",
+    "analysis_type": "SEQUENCE_ASSEMBLY"
+  }
+]

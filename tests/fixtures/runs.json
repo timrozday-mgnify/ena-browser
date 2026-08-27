@@ -1,0 +1,38 @@
+[
+  {
+    "accession": "ERR5000001",
+    "alias": "mimicc-run-A1",
+    "experiment_accession": "ERX3000001",
+    "study_accession": "PRJEB10001",
+    "sample_accession": "ERS4000001",
+    "status": "PRIVATE",
+    "instrument_platform": "ILLUMINA"
+  },
+  {
+    "accession": "ERR5000002",
+    "alias": "mimicc-run-A2",
+    "experiment_accession": "ERX3000001",
+    "study_accession": "PRJEB10001",
+    "sample_accession": "ERS4000001",
+    "status": "PRIVATE",
+    "instrument_platform": "ILLUMINA"
+  },
+  {
+    "accession": "ERR5000003",
+    "alias": "mimicc-run-B1",
+    "experiment_accession": "ERX3000002",
+    "study_accession": "PRJEB10001",
+    "sample_accession": "ERS4000002",
+    "status": "PUBLIC",
+    "instrument_platform": "OXFORD_NANOPORE"
+  },
+  {
+    "accession": "ERR5000004",
+    "alias": "mimicc-run-C1",
+    "experiment_accession": "ERX3000003",
+    "study_accession": "",
+    "sample_accession": "",
+    "status": "CANCELLED",
+    "instrument_platform": "ILLUMINA"
+  }
+]

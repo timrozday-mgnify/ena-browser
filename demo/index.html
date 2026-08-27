@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ena-browser demo</title>
+    <style>
+      :root[data-theme="dark"] {
+        --bg: #14161a;
+        --fg: #e6e8ec;
+        --panel: #1c1f25;
+        --line: #2f343d;
+        --muted: #9aa1ad;
+      }
+      body {
+        color-scheme: light dark;
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        background: var(--bg, #fff);
+        color: var(--fg, #1c1e22);
+      }
+      .demo-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .demo-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 12px;
+        align-items: start;
+      }
+      #events {
+        max-height: 520px;
+        border-color: var(--line, #d7dae0) !important;
+        background: var(--panel, #f6f7f9) !important;
+        overflow: auto;
+        margin: 0;
+        padding: 8px;
+        border: 1px solid #d7dae0;
+        border-radius: 4px;
+        background: #f6f7f9;
+        font-size: 11px;
+        white-space: pre-wrap;
+      }
+      fieldset {
+        border: 1px solid #d7dae0;
+        border-radius: 4px;
+      }
+      ena-browser {
+        height: 520px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="font-size: 16px; margin: 0 0 10px">ena-browser demo</h1>
+
+    <div class="demo-controls">
+      <label>
+        Entity
+        <select id="entity">
+          <option value="studies">studies</option>
+          <option value="samples" selected>samples</option>
+          <option value="runs">runs</option>
+          <option value="experiments">experiments</option>
+          <option value="analyses">analyses</option>
+          <option value="files">files</option>
+        </select>
+      </label>
+      <button id="load-fixtures" type="button">Load fixtures</button>
+      <label>
+        Mode
+        <select id="mode">
+          <option value="read" selected>read</option>
+          <option value="edit">edit</option>
+        </select>
+      </label>
+      <label>
+        Selection
+        <select id="selection-mode">
+          <option value="none">none</option>
+          <option value="single">single</option>
+          <option value="multi" selected>multi</option>
+        </select>
+      </label>
+      <label>
+        Page theme
+        <select id="page-theme">
+          <option value="light" selected>light</option>
+          <option value="dark">dark</option>
+        </select>
+      </label>
+      <label>
+        Element theme
+        <select id="theme">
+          <option value="auto" selected>auto (follow page)</option>
+          <option value="light">light</option>
+          <option value="dark">dark</option>
+        </select>
+      </label>
+      <button id="add-read" type="button">+1 read to selected</button>
+      <button id="clear-events" type="button">Clear log</button>
+    </div>
+
+    <fieldset id="ena-credentials">
+      <legend>Load from ENA (Webin Reports API)</legend>
+      <label>Webin ID <input id="webin-id" autocomplete="off" /></label>
+      <label>Password <input id="webin-password" type="password" autocomplete="off" /></label>
+      <label><input id="webin-test" type="checkbox" checked /> test service</label>
+      <button id="load-ena" type="button">Load from ENA</button>
+      <span id="ena-status"></span>
+      <!-- Credentials are held in memory only; never localStorage. -->
+    </fieldset>
+
+    <div class="demo-layout">
+      <ena-browser id="browser" entity="samples" selection-mode="multi"></ena-browser>
+      <pre id="events">events appear here</pre>
+    </div>
+
+    <script type="module" src="./demo.ts"></script>
+  </body>
+</html>
