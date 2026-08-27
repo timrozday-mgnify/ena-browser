@@ -4,7 +4,7 @@ A reusable browser **element** for viewing, filtering and (optionally) editing
 **ENA Webin report records** — studies, samples, runs, experiments, analyses and
 files — in a Handsontable grid.
 
-It is a *view*, not an application. It renders rows, lets the user filter, sort,
+It is a _view_, not an application. It renders rows, lets the user filter, sort,
 pin, reorder and select them, tracks edits, and hands the result back to whoever
 embedded it. It never talks to ENA's submission API and never builds a manifest;
 that stays in [`ena-submission-toolkit`](https://github.com/timrozday-mgnify/ena-submission-toolkit)
@@ -14,10 +14,10 @@ Three uses drive the design:
 
 1. **Post-submission confirmation** — show that just-submitted records are
    present in ENA (read-only).
-2. **Read↔sample pairing** — provide the *samples* side of a pairing UI:
+2. **Read↔sample pairing** — provide the _samples_ side of a pairing UI:
    selection events plus a pinned, live-updating "reads assigned" column that
    the host app writes into.
-3. **Free browsing / editing** — the assistant's *Records* tab: filter and sort
+3. **Free browsing / editing** — the assistant's _Records_ tab: filter and sort
    everything, include or exclude cancelled/suppressed records, edit cells, and
    emit a change set the host turns into an ENA MODIFY submission.
 
@@ -31,16 +31,16 @@ pass.
 
 ## 1. Stack decisions
 
-| Concern | Choice | Why |
-|---|---|---|
-| Grid | **Handsontable 17.x** (`handsontable`, non-commercial licence, same pin as the rest of the ecosystem) | Already the grid everywhere else here (DataHarmonizer, dhtb). Its `Filters`, `MultiColumnSorting`, `DropdownMenu`, `ManualColumnMove`, `HiddenColumns` and `fixedColumnsStart` plugins cover filtering, sorting, reordering and pinning without writing any of it. |
-| Language | **TypeScript**, strict | Matches dhtb. The public API is a contract that several projects code against; types are the documentation. |
-| Component model | **Native custom element** `<ena-browser>` (no framework) | The assistant is vanilla JS with no npm build step; dhtb is React. A custom element is usable verbatim from both, from plain HTML, and from an iframe. No React/Vue dependency is added anywhere. |
-| Shadow DOM | **No** — light DOM with a `.ena-browser` class prefix | Handsontable's overlays, dropdown menus and `document`-level event handling fight Shadow DOM. Theming via CSS custom properties instead (see §5). |
-| Build | **Vite library mode** → three artefacts (§2) | dhtb already uses Vite 6. Library mode gives an ESM build for npm-ish consumers and a self-contained IIFE for the assistant's `<script src>` world. |
-| Tests | **Vitest** (pure logic) + **Playwright** (grid behaviour against the demo page) | Mirrors the ecosystem: dhtb has `playwright.config.ts`, the assistant has Playwright UI tests. |
-| Data access | **Transport-agnostic core** + one optional adapter | The core takes rows or an async fetcher. `src/sources/enaReports.ts` is an *optional* adapter that calls the Webin Reports API directly with Basic auth — it exists so the standalone app works with no backend; the assistant ignores it and passes rows from its own API. |
-| Package name | `ena-browser`, repo `timrozday-mgnify/ena-browser`, consumed at a **git tag** | Same pinning strategy as every other sibling repo (`name @ git+https://…@vX.Y.Z`, or a vendored build artefact for the assistant). |
+| Concern         | Choice                                                                                                | Why                                                                                                                                                                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Grid            | **Handsontable 17.x** (`handsontable`, non-commercial licence, same pin as the rest of the ecosystem) | Already the grid everywhere else here (DataHarmonizer, dhtb). Its `Filters`, `MultiColumnSorting`, `DropdownMenu`, `ManualColumnMove`, `HiddenColumns` and `fixedColumnsStart` plugins cover filtering, sorting, reordering and pinning without writing any of it.          |
+| Language        | **TypeScript**, strict                                                                                | Matches dhtb. The public API is a contract that several projects code against; types are the documentation.                                                                                                                                                                 |
+| Component model | **Native custom element** `<ena-browser>` (no framework)                                              | The assistant is vanilla JS with no npm build step; dhtb is React. A custom element is usable verbatim from both, from plain HTML, and from an iframe. No React/Vue dependency is added anywhere.                                                                           |
+| Shadow DOM      | **No** — light DOM with a `.ena-browser` class prefix                                                 | Handsontable's overlays, dropdown menus and `document`-level event handling fight Shadow DOM. Theming via CSS custom properties instead (see §5).                                                                                                                           |
+| Build           | **Vite library mode** → three artefacts (§2)                                                          | dhtb already uses Vite 6. Library mode gives an ESM build for npm-ish consumers and a self-contained IIFE for the assistant's `<script src>` world.                                                                                                                         |
+| Tests           | **Vitest** (pure logic) + **Playwright** (grid behaviour against the demo page)                       | Mirrors the ecosystem: dhtb has `playwright.config.ts`, the assistant has Playwright UI tests.                                                                                                                                                                              |
+| Data access     | **Transport-agnostic core** + one optional adapter                                                    | The core takes rows or an async fetcher. `src/sources/enaReports.ts` is an _optional_ adapter that calls the Webin Reports API directly with Basic auth — it exists so the standalone app works with no backend; the assistant ignores it and passes rows from its own API. |
+| Package name    | `ena-browser`, repo `timrozday-mgnify/ena-browser`, consumed at a **git tag**                         | Same pinning strategy as every other sibling repo (`name @ git+https://…@vX.Y.Z`, or a vendored build artefact for the assistant).                                                                                                                                          |
 
 ### Deliberately not here
 
@@ -56,12 +56,12 @@ pass.
 
 ## 2. Build artefacts
 
-| Artefact | Consumer | Notes |
-|---|---|---|
-| `dist/ena-browser.js` (ESM) + `dist/ena-browser.d.ts` | dhtb, the standalone app, anything with a bundler | `handsontable` is a **peer** dependency (not bundled) to avoid two Handsontable copies in one page. |
-| `dist/ena-browser.iife.js` | **mimicc-ena-submission-assistant** (`<script src>`, no build step) | Handsontable **is** bundled here. Registers `<ena-browser>` and exposes `window.EnaBrowser`. |
-| `dist/ena-browser.css` | both | Element styles **plus** Handsontable's own CSS and the `ht-theme-main` theme — one stylesheet, so the IIFE consumer needs no second `<link>`. The ESM entry also `import`s Handsontable's CSS by module path, which a bundler dedupes. |
-| `demo/index.html` | humans + Playwright | Static page, fixture rows by default, live Reports API with credentials entered in the page. This is the seed of the standalone "browse my Webin reports" app. |
+| Artefact                                              | Consumer                                                            | Notes                                                                                                                                                                                                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dist/ena-browser.js` (ESM) + `dist/ena-browser.d.ts` | dhtb, the standalone app, anything with a bundler                   | `handsontable` is a **peer** dependency (not bundled) to avoid two Handsontable copies in one page.                                                                                                                                    |
+| `dist/ena-browser.iife.js`                            | **mimicc-ena-submission-assistant** (`<script src>`, no build step) | Handsontable **is** bundled here. Registers `<ena-browser>` and exposes `window.EnaBrowser`.                                                                                                                                           |
+| `dist/ena-browser.css`                                | both                                                                | Element styles **plus** Handsontable's own CSS and the `ht-theme-main` theme — one stylesheet, so the IIFE consumer needs no second `<link>`. The ESM entry also `import`s Handsontable's CSS by module path, which a bundler dedupes. |
+| `demo/index.html`                                     | humans + Playwright                                                 | Static page, fixture rows by default, live Reports API with credentials entered in the page. This is the seed of the standalone "browse my Webin reports" app.                                                                         |
 
 ---
 
@@ -73,55 +73,57 @@ type SelectionMode = "none" | "single" | "multi";
 type Entity = "studies" | "samples" | "runs" | "experiments" | "analyses" | "files";
 
 interface EnaBrowserConfig {
-  entity: Entity;                  // drives the default column set + row-key field
-  mode?: Mode;                     // default "read"
+  entity: Entity; // drives the default column set + row-key field
+  mode?: Mode; // default "read"
   rows?: Record<string, unknown>[];
-  source?: DataSource;             // async alternative to rows (see §4)
-  columns?: ColumnSpec[];          // override/extend the entity defaults
+  source?: DataSource; // async alternative to rows (see §4)
+  columns?: ColumnSpec[]; // override/extend the entity defaults
   customColumns?: CustomColumnSpec[];
-  filters?: FilterSpec[];          // initial, programmatic filters
+  filters?: FilterSpec[]; // initial, programmatic filters
   sort?: SortSpec[];
   statusFilter?: StatusFilterSpec; // the cancelled/suppressed toggles
-  selectionMode?: SelectionMode;   // default "none"
-  editableColumns?: string[];      // in edit mode, the only writable fields
-  rowActions?: RowActionSpec[];    // buttons the element renders, the host executes
-                                   // -> a frozen button column; click emits row-action
-  layout?: Layout;                 // pinned/hidden/ordered columns + widths
+  selectionMode?: SelectionMode; // default "none"
+  editableColumns?: string[]; // in edit mode, the only writable fields
+  rowActions?: RowActionSpec[]; // buttons the element renders, the host executes
+  // -> a frozen button column; click emits row-action
+  layout?: Layout; // pinned/hidden/ordered columns + widths
   height?: number | string;
-  license?: string;                // Handsontable licenseKey passthrough
+  license?: string; // Handsontable licenseKey passthrough
 }
 ```
 
 ### Methods
 
-| Method | Purpose |
-|---|---|
-| `applyConfig(partial)` | Merge a partial config in. Every attribute and `config` write funnels through this; structural keys (`columns`, `customColumns`, `selectionMode`, `rowActions`, `license`, `height`) rebuild the grid, preserving layout and selection. |
-| `setRows(rows)` / `getRows()` | Replace / read the backing data. |
-| `refresh()` | Re-run `source.fetch()` if a source was configured. Aborts any fetch still in flight. |
-| `setMode(mode)` | Flip read ↔ edit without losing filters or selection. |
-| `getChangeSet(): ChangeSet` | `{ rows: [{ key, accession, before, after, changed: string[] }] }` — everything the host needs to build a MODIFY manifest. |
-| `clearChanges()` | Call after the host has successfully submitted. |
-| `getSelection(): string[]` / `setSelection(keys)` / `clearSelection()` | Row keys (accessions), in click order. |
-| `setCustomValues(column, map)` | Update a dynamic column, e.g. `setCustomValues("reads_assigned", {ERS1: 2})` — a plain object or a `Map`, merged into what is already there. Cheap: patches cells in place, never re-sorts or loses selection. |
-| `setFilters(specs)` / `getFilters()` / `setSort(specs)` | Programmatic filter/sort control; mirrors what the UI writes. |
-| `getLayout()` / `setLayout(layout)` | Column order, pins, hidden columns, widths — for the host to persist. |
-| `getVisibleRows()` | The rows currently passing the filters, in display order (for "export what I see"). |
-| `getState(): BrowserState` / `setState(state)` | One JSON-safe snapshot of everything the user can change — `{ edits, layout, filters, sort, selection }`. The unit a host's undo/redo stack stores; `setState()` is idempotent and stamps every event it causes with `source: "api"`. See [docs/INTEGRATION.md](docs/INTEGRATION.md#undoredo). |
+| Method                                                                 | Purpose                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applyConfig(partial)`                                                 | Merge a partial config in. Every attribute and `config` write funnels through this; structural keys (`columns`, `customColumns`, `selectionMode`, `rowActions`, `license`, `height`) rebuild the grid, preserving layout and selection.                                                        |
+| `setRows(rows)` / `getRows()`                                          | Replace / read the backing data.                                                                                                                                                                                                                                                               |
+| `refresh()`                                                            | Re-run `source.fetch()` if a source was configured. Aborts any fetch still in flight.                                                                                                                                                                                                          |
+| `setMode(mode)`                                                        | Flip read ↔ edit without losing filters or selection.                                                                                                                                                                                                                                          |
+| `theme` / `resolvedTheme`                                              | Properties, not methods. `theme` is `"auto"` (default) \| `"light"` \| `"dark"`, also settable as the `theme` attribute; `resolvedTheme` reads back the concrete one. See [Theming](#5-theming).                                                                                               |
+| `getChangeSet(): ChangeSet`                                            | `{ rows: [{ key, accession, before, after, changed: string[] }] }` — everything the host needs to build a MODIFY manifest.                                                                                                                                                                     |
+| `clearChanges()`                                                       | Call after the host has successfully submitted.                                                                                                                                                                                                                                                |
+| `getSelection(): string[]` / `setSelection(keys)` / `clearSelection()` | Row keys (accessions), in click order.                                                                                                                                                                                                                                                         |
+| `setCustomValues(column, map)`                                         | Update a dynamic column, e.g. `setCustomValues("reads_assigned", {ERS1: 2})` — a plain object or a `Map`, merged into what is already there. Cheap: patches cells in place, never re-sorts or loses selection.                                                                                 |
+| `setFilters(specs)` / `getFilters()` / `setSort(specs)`                | Programmatic filter/sort control; mirrors what the UI writes.                                                                                                                                                                                                                                  |
+| `getLayout()` / `setLayout(layout)`                                    | Column order, pins, hidden columns, widths — for the host to persist.                                                                                                                                                                                                                          |
+| `getVisibleRows()`                                                     | The rows currently passing the filters, in display order (for "export what I see").                                                                                                                                                                                                            |
+| `getState(): BrowserState` / `setState(state)`                         | One JSON-safe snapshot of everything the user can change — `{ edits, layout, filters, sort, selection }`. The unit a host's undo/redo stack stores; `setState()` is idempotent and stamps every event it causes with `source: "api"`. See [docs/INTEGRATION.md](docs/INTEGRATION.md#undoredo). |
 
 ### Events
 
 All are `CustomEvent`s on the element, prefixed `ena-browser:`.
 
-| Event | `detail` | Fired when |
-|---|---|---|
-| `ready` | `{ source }` | Grid mounted. |
-| `selection-change` | `{ keys, rows, lastKey, source }` | A row is selected/deselected. **This is the pairing hook** — the host records `lastKey` and waits for the next click in the reads element. |
-| `change` | `{ changes: ChangeSet, source }` | An edit was committed (edit mode only). |
-| `row-action` | `{ action, key, row, source }` | A `rowActions` button was clicked. The element does nothing else — the host performs release/hold/suppress/cancel. |
-| `filter-change` | `{ filters, sort, visibleCount, source }` | Filters or sort changed. |
-| `layout-change` | `{ layout, source }` | Columns pinned, moved, hidden or resized. |
-| `error` | `{ message }` | A configured `source` fetch failed. |
+| Event              | `detail`                                  | Fired when                                                                                                                                 |
+| ------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ready`            | `{ source }`                              | Grid mounted.                                                                                                                              |
+| `selection-change` | `{ keys, rows, lastKey, source }`         | A row is selected/deselected. **This is the pairing hook** — the host records `lastKey` and waits for the next click in the reads element. |
+| `change`           | `{ changes: ChangeSet, source }`          | An edit was committed (edit mode only).                                                                                                    |
+| `row-action`       | `{ action, key, row, source }`            | A `rowActions` button was clicked. The element does nothing else — the host performs release/hold/suppress/cancel.                         |
+| `filter-change`    | `{ filters, sort, visibleCount, source }` | Filters or sort changed.                                                                                                                   |
+| `layout-change`    | `{ layout, source }`                      | Columns pinned, moved, hidden or resized.                                                                                                  |
+| `theme-change`     | `{ theme, resolvedTheme }`                | The resolved light/dark theme changed — by API, by the page's `data-theme`, or by the OS preference.                                       |
+| `error`            | `{ message }`                             | A configured `source` fetch failed.                                                                                                        |
 
 ### Filter spec
 
@@ -131,10 +133,24 @@ one-to-one onto Handsontable's `Filters` conditions:
 ```ts
 type FilterSpec = {
   column: string;
-  operator: "eq" | "neq" | "contains" | "not_contains" | "begins" | "ends"
-          | "in" | "not_in" | "empty" | "not_empty" | "gt" | "gte" | "lt" | "lte" | "between";
+  operator:
+    | "eq"
+    | "neq"
+    | "contains"
+    | "not_contains"
+    | "begins"
+    | "ends"
+    | "in"
+    | "not_in"
+    | "empty"
+    | "not_empty"
+    | "gt"
+    | "gte"
+    | "lt"
+    | "lte"
+    | "between";
   value?: unknown;
-  values?: unknown[];   // for in / not_in
+  values?: unknown[]; // for in / not_in
 };
 ```
 
@@ -143,9 +159,9 @@ suppressed" is the one filter every consumer wants:
 
 ```ts
 type StatusFilterSpec = {
-  include?: string[];              // explicit allow-list of ENA status values
-  excludeCancelled?: boolean;      // default true
-  excludeSuppressed?: boolean;     // default true
+  include?: string[]; // explicit allow-list of ENA status values
+  excludeCancelled?: boolean; // default true
+  excludeSuppressed?: boolean; // default true
 };
 ```
 
@@ -156,11 +172,11 @@ passes nothing still gets the toggles.
 
 ```ts
 type CustomColumnSpec = {
-  name: string;              // e.g. "reads_assigned"
-  title: string;             // e.g. "Reads"
+  name: string; // e.g. "reads_assigned"
+  title: string; // e.g. "Reads"
   type?: "numeric" | "text" | "checkbox";
-  pinned?: boolean;          // default true for custom columns — they are the point
-  readOnly?: boolean;        // default true; the host owns the values
+  pinned?: boolean; // default true for custom columns — they are the point
+  readOnly?: boolean; // default true; the host owns the values
   default?: unknown;
   render?: "badge" | "text"; // badge = the pill styling the assistant already uses
 };
@@ -204,28 +220,50 @@ Two shipped implementations:
 The element inherits from CSS custom properties with the same names the
 assistant already defines (`--bg`, `--panel`, `--line`, `--fg`, `--muted`,
 `--accent`, `--ok`, `--bad`, `--warn`), falling back to its own defaults when
-they're absent. It also honours `data-theme="light" | "dark"` on any ancestor,
-so the assistant's existing theme switch drives it for free — no `setTheme()`
-call, no postMessage bridge, because it is not in an iframe.
+they're absent.
+
+Light and dark are driven by the `theme` property/attribute — `"auto"` (the
+default), `"light"` or `"dark"`:
+
+```js
+browser.theme = "dark"; // or the `theme="dark"` attribute
+browser.theme = "auto"; // back to following the page
+browser.resolvedTheme; // "light" | "dark" — auto already resolved
+```
+
+On `auto` the element takes the nearest ancestor's
+`data-theme="light" | "dark"` and falls back to the OS
+`prefers-color-scheme`, re-resolving whenever either changes — so the
+assistant's existing theme switch drives it for free, with no extra code and
+no postMessage bridge, because it is not in an iframe.
+
+Whichever way it resolves, the element stamps the concrete theme on itself as
+`data-theme` (and Handsontable's `ht-theme-main` / `ht-theme-main-dark` on the
+grid), and emits `ena-browser:theme-change` with
+`{ theme, resolvedTheme }`.
+
+Host `--bg` and friends win while the element's theme matches the page's. Pin
+the element to a theme the page isn't using and it drops them (it marks itself
+`data-theme-detached`) rather than painting a light grid in your dark palette.
 
 ---
 
 ## 6. Where functionality belongs
 
-| Concern | Owner | Not |
-|---|---|---|
-| Grid rendering, filter/sort/pin/reorder/hide | **ena-browser** | assistant |
-| ENA status vocabulary + the cancelled/suppressed toggles | **ena-browser** | assistant |
-| Row selection semantics + selection events | **ena-browser** | assistant |
-| Edit tracking / change-set diffing | **ena-browser** | assistant, toolkit |
-| Dynamic "reads assigned" column rendering | **ena-browser** | assistant |
-| *Computing* how many reads a sample has | **assistant** (it owns the run rows) | ena-browser |
-| Pairing: matching a selected sample to a clicked read group | **assistant** | ena-browser |
-| Fetching records, Webin credentials, test/prod switching | **assistant** (or `enaReportsSource` for the standalone app) | ena-browser core |
-| Persisting layout/filters across sessions | **assistant** (IndexedDB) | ena-browser |
-| Turning a change set into a MODIFY manifest/XML | **ena-submission-toolkit** | ena-browser |
-| HTTP to ENA submission endpoints | **ena-api-client** | ena-browser |
-| Lifecycle actions (release/hold/suppress/cancel) | **assistant** — element only emits `row-action` | ena-browser |
+| Concern                                                     | Owner                                                        | Not                |
+| ----------------------------------------------------------- | ------------------------------------------------------------ | ------------------ |
+| Grid rendering, filter/sort/pin/reorder/hide                | **ena-browser**                                              | assistant          |
+| ENA status vocabulary + the cancelled/suppressed toggles    | **ena-browser**                                              | assistant          |
+| Row selection semantics + selection events                  | **ena-browser**                                              | assistant          |
+| Edit tracking / change-set diffing                          | **ena-browser**                                              | assistant, toolkit |
+| Dynamic "reads assigned" column rendering                   | **ena-browser**                                              | assistant          |
+| _Computing_ how many reads a sample has                     | **assistant** (it owns the run rows)                         | ena-browser        |
+| Pairing: matching a selected sample to a clicked read group | **assistant**                                                | ena-browser        |
+| Fetching records, Webin credentials, test/prod switching    | **assistant** (or `enaReportsSource` for the standalone app) | ena-browser core   |
+| Persisting layout/filters across sessions                   | **assistant** (IndexedDB)                                    | ena-browser        |
+| Turning a change set into a MODIFY manifest/XML             | **ena-submission-toolkit**                                   | ena-browser        |
+| HTTP to ENA submission endpoints                            | **ena-api-client**                                           | ena-browser        |
+| Lifecycle actions (release/hold/suppress/cancel)            | **assistant** — element only emits `row-action`              | ena-browser        |
 
 ---
 
@@ -242,18 +280,18 @@ npm run build      # ESM + IIFE + CSS + .d.ts into dist/
 
 ### Repo map
 
-| Path | What lives there |
-|---|---|
-| `src/types.ts` | The public API. Nothing else exports types. |
-| `src/entities.ts` | Row keys, per-entity default columns, the ENA status vocabulary. Mirrors `ena-api-client/ena_api/models.py`. |
-| `src/filters.ts` | `FilterSpec` ↔ Handsontable conditions, plus a DOM-free evaluator. |
-| `src/changes.ts` | `ChangeTracker` — edits in, change set out, reverts removed. |
-| `src/grid.ts` | `EnaGrid`: the Handsontable instance and everything ENA-specific. |
-| `src/toolbar.ts` | The strip above the grid. Controls carry `data-role` attributes. |
-| `src/element.ts` | `<ena-browser>` — a thin shell over the two above. |
-| `src/sources/` | `rowsSource`, `enaReportsSource`. |
-| `demo/` | The demo page, and the seed of the standalone app. |
-| `tests/unit`, `tests/browser`, `tests/fixtures` | Vitest, Playwright, fixture rows per entity. |
+| Path                                            | What lives there                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/types.ts`                                  | The public API. Nothing else exports types.                                                                  |
+| `src/entities.ts`                               | Row keys, per-entity default columns, the ENA status vocabulary. Mirrors `ena-api-client/ena_api/models.py`. |
+| `src/filters.ts`                                | `FilterSpec` ↔ Handsontable conditions, plus a DOM-free evaluator.                                           |
+| `src/changes.ts`                                | `ChangeTracker` — edits in, change set out, reverts removed.                                                 |
+| `src/grid.ts`                                   | `EnaGrid`: the Handsontable instance and everything ENA-specific.                                            |
+| `src/toolbar.ts`                                | The strip above the grid. Controls carry `data-role` attributes.                                             |
+| `src/element.ts`                                | `<ena-browser>` — a thin shell over the two above.                                                           |
+| `src/sources/`                                  | `rowsSource`, `enaReportsSource`.                                                                            |
+| `demo/`                                         | The demo page, and the seed of the standalone app.                                                           |
+| `tests/unit`, `tests/browser`, `tests/fixtures` | Vitest, Playwright, fixture rows per entity.                                                                 |
 
 `pre-commit` (hygiene + secret detection + Prettier + `tsc --noEmit`) runs on
 commit; GitHub Actions (`.github/workflows/ci.yml`) re-runs it on every push and

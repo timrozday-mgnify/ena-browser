@@ -41,6 +41,10 @@ const SELECTION_COLUMN = "__selected__";
 const ACTIONS_COLUMN = "__actions__";
 const DEFAULT_LICENSE = "non-commercial-and-evaluation";
 
+function themeName(theme: "light" | "dark"): string {
+  return theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main";
+}
+
 /** Emits the same event names the element re-dispatches as `ena-browser:*`. */
 export class EnaGrid extends EventTarget {
   private hot: Handsontable | null = null;
@@ -60,6 +64,8 @@ export class EnaGrid extends EventTarget {
   /** Column names in the order Handsontable currently holds them. */
   private active: string[] = [];
   private rebuilding = false;
+  /** Already resolved to a concrete theme by the element; "auto" never reaches here. */
+  private resolvedTheme: "light" | "dark" = "light";
   /** True while `setState()` runs, so events say `source: "api"`. */
   private applying = false;
 
@@ -74,6 +80,7 @@ export class EnaGrid extends EventTarget {
   ) {
     super();
     this.config = { ...config };
+    if (config.theme === "dark" || config.theme === "light") this.resolvedTheme = config.theme;
     this.rows = config.rows ? [...config.rows] : [];
     this.snapshot();
     this.userFilters = config.filters ? [...config.filters] : [];
@@ -90,12 +97,23 @@ export class EnaGrid extends EventTarget {
   // ---------------------------------------------------------------- lifecycle
 
   private mount(): void {
-    this.container.classList.add("ena-browser-grid", "ht-theme-main");
+    this.container.classList.add("ena-browser-grid");
     this.hot = new Handsontable(this.container, this.settings());
     this.container.addEventListener("click", this.onContainerClick);
     this.applyFiltersToGrid();
     this.applySortToGrid();
     this.emit("ready", {});
+  }
+
+  /** `light` | `dark` — the element resolves `auto` before calling. */
+  setTheme(theme: "light" | "dark"): void {
+    this.resolvedTheme = theme;
+    this.applyTheme();
+  }
+
+  /** `useTheme()` swaps the class and re-reads Handsontable's own CSS variables. */
+  private applyTheme(): void {
+    this.hot?.useTheme(themeName(this.resolvedTheme));
   }
 
   destroy(): void {
@@ -316,6 +334,7 @@ export class EnaGrid extends EventTarget {
     return {
       data: this.rows,
       columns,
+      themeName: themeName(this.resolvedTheme),
       colHeaders: columns.map((c) => String(c.title ?? "")),
       rowHeaders: false,
       filters: true,

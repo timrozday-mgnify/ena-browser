@@ -18,6 +18,7 @@ import type {
   Row,
   SelectionMode,
   SortSpec,
+  Theme,
 } from "./types.js";
 
 const FORWARDED = [
@@ -40,13 +41,16 @@ const STRUCTURAL: (keyof EnaBrowserConfig)[] = [
 ];
 
 export class EnaBrowserElement extends HTMLElement {
-  static observedAttributes = ["entity", "mode", "selection-mode", "height"];
+  static observedAttributes = ["entity", "mode", "selection-mode", "height", "theme"];
 
   private _config: EnaBrowserConfig = { entity: "samples" };
   private grid: EnaGrid | null = null;
   private toolbar: EnaToolbar | null = null;
   private pending: AbortController | null = null;
   private mounted = false;
+  /** Only live while connected — both feed `applyTheme()` in `auto` mode. */
+  private darkQuery: MediaQueryList | null = null;
+  private themeObserver: MutationObserver | null = null;
 
   // --------------------------------------------------------------- lifecycle
 
@@ -55,6 +59,7 @@ export class EnaBrowserElement extends HTMLElement {
     this.mounted = true;
     this.readAttributes();
     this.build();
+    this.watchTheme();
     if (this._config.source) void this.refresh();
   }
 
@@ -62,6 +67,7 @@ export class EnaBrowserElement extends HTMLElement {
     this.mounted = false;
     this.pending?.abort();
     this.pending = null;
+    this.unwatchTheme();
     this.teardown();
   }
 
@@ -97,6 +103,7 @@ export class EnaBrowserElement extends HTMLElement {
         );
       });
     }
+    this.applyTheme();
     this.toolbar = new EnaToolbar(this.grid, this._config);
     this.appendChild(this.toolbar.element);
     this.appendChild(gridHost);
@@ -150,6 +157,7 @@ export class EnaBrowserElement extends HTMLElement {
     if (partial.mode && partial.mode !== previous.mode) {
       this.grid.setMode(partial.mode);
     }
+    if (partial.theme) this.applyTheme();
     if (partial.rows) this.grid.setRows(partial.rows);
     if (partial.filters) this.grid.setFilters(partial.filters);
     if (partial.sort) this.grid.setSort(partial.sort);
@@ -198,6 +206,20 @@ export class EnaBrowserElement extends HTMLElement {
 
   setMode(mode: Mode): void {
     this.applyConfig({ mode });
+  }
+
+  /** `"light" | "dark" | "auto"`. `auto` follows the page, then the OS. */
+  get theme(): Theme {
+    return this._config.theme ?? "auto";
+  }
+
+  set theme(theme: Theme) {
+    this.applyConfig({ theme });
+  }
+
+  /** The concrete theme in force — `auto` already resolved. */
+  get resolvedTheme(): "light" | "dark" {
+    return this.dataset.theme === "dark" ? "dark" : "light";
   }
 
   getChangeSet(): ChangeSet {
@@ -272,6 +294,62 @@ export class EnaBrowserElement extends HTMLElement {
   getVisibleRows(): Row[] {
     return this.grid?.getVisibleRows() ?? [];
   }
+
+  // ------------------------------------------------------------------- theme
+
+  /**
+   * Stamps the resolved theme on the element, so the CSS never has to reason
+   * about `auto` — and neither does a host that styles around us.
+   */
+  private applyTheme(): void {
+    const setting = this._config.theme ?? "auto";
+    const page = this.detectTheme();
+    const resolved = setting === "auto" ? page : setting;
+    // Host colours are only right while we match the page — see styles.css.
+    this.toggleAttribute("data-theme-detached", resolved !== page);
+    if (this.dataset.theme !== resolved) {
+      this.dataset.theme = resolved;
+      this.dispatchEvent(
+        new CustomEvent("ena-browser:theme-change", {
+          detail: { theme: setting, resolvedTheme: resolved },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
+    this.grid?.setTheme(resolved);
+  }
+
+  /** Nearest ancestor `data-theme`, else the OS preference. */
+  private detectTheme(): "light" | "dark" {
+    this.darkQuery ??= globalThis.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
+    const owner = this.parentElement?.closest<HTMLElement>("[data-theme]");
+    const inherited = owner?.dataset.theme;
+    if (inherited === "dark" || inherited === "light") return inherited;
+    return this.darkQuery?.matches ? "dark" : "light";
+  }
+
+  private readonly onThemeSignal = (): void => {
+    if ((this._config.theme ?? "auto") === "auto") this.applyTheme();
+  };
+
+  private watchTheme(): void {
+    this.applyTheme();
+    this.darkQuery?.addEventListener("change", this.onThemeSignal);
+    // ponytail: one document-wide observer beats walking ancestors on a timer.
+    this.themeObserver = new MutationObserver(this.onThemeSignal);
+    this.themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+      subtree: true,
+    });
+  }
+
+  private unwatchTheme(): void {
+    this.darkQuery?.removeEventListener("change", this.onThemeSignal);
+    this.themeObserver?.disconnect();
+    this.themeObserver = null;
+  }
 }
 
 function coerce(key: string, value: string): string | number {
@@ -280,4 +358,4 @@ function coerce(key: string, value: string): string | number {
   return Number.isFinite(numeric) ? numeric : value;
 }
 
-export type { Entity, Mode, SelectionMode };
+export type { Entity, Mode, SelectionMode, Theme };

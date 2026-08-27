@@ -5,6 +5,7 @@
 
 export type Mode = "read" | "edit";
 export type SelectionMode = "none" | "single" | "multi";
+export type Theme = "light" | "dark" | "auto";
 export type Entity = "studies" | "samples" | "runs" | "experiments" | "analyses" | "files";
 
 /** A plain report row as it arrives from the Reports API. */
@@ -141,6 +142,8 @@ export interface EnaBrowserConfig {
   rowActions?: RowActionSpec[];
   layout?: Layout;
   height?: number | string;
+  /** `"auto"` (default) follows the nearest ancestor `data-theme`, then the OS. */
+  theme?: Theme;
   /** Handsontable licenseKey passthrough. */
   license?: string;
 }
@@ -163,5 +166,6 @@ export interface EnaBrowserEventMap {
     source: EventSource;
   };
   "layout-change": { layout: Layout; source: EventSource };
+  "theme-change": { theme: Theme; resolvedTheme: "light" | "dark" };
   error: { message: string };
 }

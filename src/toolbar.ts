@@ -141,6 +141,13 @@ export class EnaToolbar {
     const menu = document.createElement("div");
     menu.className = "ena-browser-columns-menu";
     menu.dataset["role"] = "columns-menu";
+    // The menu lives on <body>, so it carries the theme rather than inheriting it.
+    const owner = this.element.closest<HTMLElement>(".ena-browser");
+    menu.dataset["theme"] = owner?.dataset["theme"] ?? "light";
+    menu.toggleAttribute(
+      "data-theme-detached",
+      owner?.hasAttribute("data-theme-detached") ?? false,
+    );
 
     for (const column of this.grid.listColumns()) {
       const row = document.createElement("div");

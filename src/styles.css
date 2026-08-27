@@ -6,17 +6,42 @@
  * assistant already defines these names — with our own fallbacks.
  */
 
-.ena-browser {
-  --eb-bg: var(--bg, #ffffff);
-  --eb-panel: var(--panel, #f6f7f9);
-  --eb-line: var(--line, #d7dae0);
-  --eb-fg: var(--fg, #1c1e22);
-  --eb-muted: var(--muted, #6b7280);
-  --eb-accent: var(--accent, #2563eb);
-  --eb-ok: var(--ok, #16a34a);
-  --eb-bad: var(--bad, #dc2626);
-  --eb-warn: var(--warn, #d97706);
+/*
+ * The host's colours are only right while our theme matches the page's, so
+ * they come in through one switchable layer. When the element is pinned to a
+ * theme the page isn't using, the element stamps `data-theme-detached` on
+ * itself, `--host-*` goes undefined, and every token falls back to our own.
+ */
+.ena-browser:not([data-theme-detached]),
+.ena-browser-columns-menu:not([data-theme-detached]) {
+  --host-bg: var(--bg);
+  --host-panel: var(--panel);
+  --host-line: var(--line);
+  --host-fg: var(--fg);
+  --host-muted: var(--muted);
+  --host-accent: var(--accent);
+  --host-ok: var(--ok);
+  --host-bad: var(--bad);
+  --host-warn: var(--warn);
+}
 
+.ena-browser,
+/* Portalled to <body>, so it needs its own copy of the tokens. */
+.ena-browser-columns-menu {
+  --eb-bg: var(--host-bg, #ffffff);
+  --eb-panel: var(--host-panel, #f6f7f9);
+  --eb-line: var(--host-line, #d7dae0);
+  --eb-fg: var(--host-fg, #1c1e22);
+  --eb-muted: var(--host-muted, #6b7280);
+  --eb-accent: var(--host-accent, #2563eb);
+  --eb-ok: var(--host-ok, #16a34a);
+  --eb-bad: var(--host-bad, #dc2626);
+  --eb-warn: var(--host-warn, #d97706);
+
+  color-scheme: light;
+}
+
+.ena-browser {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -30,12 +55,19 @@
   font-size: 13px;
 }
 
-[data-theme="dark"] .ena-browser {
-  --eb-bg: var(--bg, #14161a);
-  --eb-panel: var(--panel, #1c1f25);
-  --eb-line: var(--line, #2f343d);
-  --eb-fg: var(--fg, #e6e8ec);
-  --eb-muted: var(--muted, #9aa1ad);
+/*
+ * The element stamps `data-theme="light" | "dark"` on itself — already
+ * resolved from its `theme` property, the host page's `data-theme` or the OS
+ * preference — so the CSS never has to reason about "auto".
+ */
+.ena-browser[data-theme="dark"],
+.ena-browser-columns-menu[data-theme="dark"] {
+  color-scheme: dark;
+  --eb-bg: var(--host-bg, #14161a);
+  --eb-panel: var(--host-panel, #1c1f25);
+  --eb-line: var(--host-line, #2f343d);
+  --eb-fg: var(--host-fg, #e6e8ec);
+  --eb-muted: var(--host-muted, #9aa1ad);
 }
 
 /* Toolbar */
@@ -109,6 +141,8 @@
 
 .ena-browser-columns-menu {
   position: absolute;
+  font-family: inherit;
+  font-size: 13px;
   z-index: 1200;
   max-height: 320px;
   overflow: auto;
@@ -116,6 +150,7 @@
   border: 1px solid var(--eb-line);
   border-radius: 6px;
   background: var(--eb-bg);
+  color: var(--eb-fg);
   box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
 }
 

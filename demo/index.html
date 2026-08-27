@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ena-browser demo</title>
     <style>
+      :root[data-theme="dark"] {
+        --bg: #14161a;
+        --fg: #e6e8ec;
+        --panel: #1c1f25;
+        --line: #2f343d;
+        --muted: #9aa1ad;
+      }
       body {
+        color-scheme: light dark;
         margin: 0;
         padding: 12px;
         font-family: system-ui, sans-serif;
@@ -28,6 +36,8 @@
       }
       #events {
         max-height: 520px;
+        border-color: var(--line, #d7dae0) !important;
+        background: var(--panel, #f6f7f9) !important;
         overflow: auto;
         margin: 0;
         padding: 8px;
@@ -75,6 +85,21 @@
           <option value="none">none</option>
           <option value="single">single</option>
           <option value="multi" selected>multi</option>
+        </select>
+      </label>
+      <label>
+        Page theme
+        <select id="page-theme">
+          <option value="light" selected>light</option>
+          <option value="dark">dark</option>
+        </select>
+      </label>
+      <label>
+        Element theme
+        <select id="theme">
+          <option value="auto" selected>auto (follow page)</option>
+          <option value="light">light</option>
+          <option value="dark">dark</option>
         </select>
       </label>
       <button id="add-read" type="button">+1 read to selected</button>

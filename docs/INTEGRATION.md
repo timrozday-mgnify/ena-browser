@@ -67,13 +67,13 @@ records.applyConfig({
 records.addEventListener("ena-browser:row-action", async (event) => {
   const { action, key, row } = event.detail;
   await fetch(`/api/records/${key}/${action}`, { method: "POST" });
-  records.setRows(await reload());   // the element re-reads nothing on its own
+  records.setRows(await reload()); // the element re-reads nothing on its own
 });
 ```
 
 ## 2. The pairing panel (samples ↔ reads)
 
-The element provides the *samples* side: selection events and a pinned,
+The element provides the _samples_ side: selection events and a pinned,
 live-updating "reads assigned" column the host writes into. Computing the
 counts and matching a sample to a read group stay in the host.
 
@@ -114,7 +114,7 @@ function assignReads(readGroup) {
 `handsontable` is a peer dependency here, so the page gets exactly one copy.
 
 ```ts
-import "ena-browser";           // registers <ena-browser>
+import "ena-browser"; // registers <ena-browser>
 import "ena-browser/style.css";
 import { enaReportsSource, type EnaBrowserElement } from "ena-browser";
 
@@ -134,15 +134,15 @@ const forExport = element.getVisibleRows(); // "export what I see"
 
 ## Events, in one table
 
-| Event | `detail` |
-|---|---|
-| `ena-browser:ready` | `{ source }` |
-| `ena-browser:selection-change` | `{ keys, rows, lastKey, source }` |
-| `ena-browser:change` | `{ changes: ChangeSet, source }` |
-| `ena-browser:row-action` | `{ action, key, row, source }` |
-| `ena-browser:filter-change` | `{ filters, sort, visibleCount, source }` |
-| `ena-browser:layout-change` | `{ layout, source }` |
-| `ena-browser:error` | `{ message }` |
+| Event                          | `detail`                                  |
+| ------------------------------ | ----------------------------------------- |
+| `ena-browser:ready`            | `{ source }`                              |
+| `ena-browser:selection-change` | `{ keys, rows, lastKey, source }`         |
+| `ena-browser:change`           | `{ changes: ChangeSet, source }`          |
+| `ena-browser:row-action`       | `{ action, key, row, source }`            |
+| `ena-browser:filter-change`    | `{ filters, sort, visibleCount, source }` |
+| `ena-browser:layout-change`    | `{ layout, source }`                      |
+| `ena-browser:error`            | `{ message }`                             |
 
 All bubble and cross shadow boundaries (`bubbles: true, composed: true`).
 
@@ -159,7 +159,7 @@ history:
 const state = element.getState();
 // { edits, layout, filters, sort, selection } — JSON-safe, structuredClone-safe
 
-element.setState(state);   // restore; partial states are fine
+element.setState(state); // restore; partial states are fine
 ```
 
 Wiring it to a stack is three lines. Push on `"user"`, ignore `"api"`, or the
@@ -171,18 +171,24 @@ let at = 0;
 
 for (const name of ["change", "filter-change", "layout-change", "selection-change"]) {
   element.addEventListener(`ena-browser:${name}`, (e) => {
-    if (e.detail.source !== "user") return;      // a replay, not a gesture
-    undo.length = at + 1;                        // drop the redo tail
+    if (e.detail.source !== "user") return; // a replay, not a gesture
+    undo.length = at + 1; // drop the redo tail
     undo.push(element.getState());
     at = undo.length - 1;
   });
 }
 
-const apply = (i) => { at = i; element.setState(undo[i]); };
+const apply = (i) => {
+  at = i;
+  element.setState(undo[i]);
+};
 document.addEventListener("keydown", (e) => {
   if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
   const next = e.shiftKey ? at + 1 : at - 1;
-  if (undo[next]) { e.preventDefault(); apply(next); }
+  if (undo[next]) {
+    e.preventDefault();
+    apply(next);
+  }
 });
 ```
 
@@ -195,7 +201,7 @@ Notes:
   `setRows()` are dropped from a restored state rather than resurrected —
   `setRows()` is a new baseline and clears pending edits, so snapshot the state
   before you swap rows if you want to cross that boundary.
-- Rows are deliberately *not* in the snapshot: the host owns them. A stack that
+- Rows are deliberately _not_ in the snapshot: the host owns them. A stack that
   needs to undo across a `setRows()` stores its own rows next to the state.
 - Debounce the push if you want one undo step per edit burst rather than per
   cell; the element does no coalescing.
@@ -203,6 +209,27 @@ Notes:
 ## Theming
 
 The element reads `--bg`, `--panel`, `--line`, `--fg`, `--muted`, `--accent`,
-`--ok`, `--bad`, `--warn` from any ancestor and honours
-`data-theme="light" | "dark"`. The assistant's existing theme switch drives it
-with no extra code.
+`--ok`, `--bad`, `--warn` from any ancestor.
+
+Light/dark is the `theme` property (or `theme` attribute): `"auto"` (default),
+`"light"`, `"dark"`.
+
+```js
+browser.theme = "dark"; // the assistant drives it explicitly
+browser.theme = "auto"; // follow the page again
+browser.resolvedTheme; // "light" | "dark"
+browser.addEventListener("ena-browser:theme-change", (e) =>
+  console.log(e.detail.theme, e.detail.resolvedTheme),
+);
+```
+
+On `auto` it follows the nearest ancestor's `data-theme="light" | "dark"`,
+then the OS `prefers-color-scheme`, and re-resolves whenever either changes —
+so the assistant's existing theme switch drives it with no extra code. The
+resolved value is stamped on the element as `data-theme`, so host CSS can key
+off it too.
+
+Host `--bg`/`--fg`/… win while the element's theme matches the page's. Pin the
+element to a theme the page isn't using and it ignores them — it marks itself
+`data-theme-detached` and falls back to its own palette, so a light grid on a
+dark page stays legible.

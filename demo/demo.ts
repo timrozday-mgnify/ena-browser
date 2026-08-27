@@ -99,6 +99,14 @@ selectionSelect.addEventListener("change", () =>
   }),
 );
 
+document.getElementById("page-theme")?.addEventListener("change", (event) => {
+  document.documentElement.dataset["theme"] = (event.target as HTMLSelectElement).value;
+});
+
+document.getElementById("theme")?.addEventListener("change", (event) => {
+  browser.theme = (event.target as HTMLSelectElement).value as "light" | "dark" | "auto";
+});
+
 document.getElementById("add-read")?.addEventListener("click", () => {
   for (const key of browser.getSelection()) {
     readsAssigned.set(key, (readsAssigned.get(key) ?? 0) + 1);
