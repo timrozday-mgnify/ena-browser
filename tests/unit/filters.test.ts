@@ -122,14 +122,14 @@ describe("spec ↔ Handsontable condition", () => {
     ).toEqual({ name: "between", args: [1, 9] });
   });
 
-  // ponytail: Handsontable has no not_in — it becomes `by` over the complement,
+  // ponytail: Handsontable has no not_in — it becomes `by_value` over the complement,
   // so it round-trips back as `in`, which is the same filter.
-  it("expresses not_in as `by` over the complement", () => {
+  it("expresses not_in as `by_value` over the complement", () => {
     const condition = toHandsontableCondition(
       { column: "status", operator: "not_in", values: ["CANCELLED"] },
       ["PRIVATE", "CANCELLED", "PUBLIC"],
     );
-    expect(condition).toEqual({ name: "by", args: [["PRIVATE", "PUBLIC"]] });
+    expect(condition).toEqual({ name: "by_value", args: [["PRIVATE", "PUBLIC"]] });
   });
 
   it("ignores unknown columns and conditions in the stack", () => {

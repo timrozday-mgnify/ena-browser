@@ -1,0 +1,184 @@
+/*
+ * Element styles only. Handsontable's own CSS is imported by src/index.ts
+ * (external in the ESM build, bundled in the IIFE).
+ *
+ * Colours come from the host's custom properties where they exist — the
+ * assistant already defines these names — with our own fallbacks.
+ */
+
+.ena-browser {
+  --eb-bg: var(--bg, #ffffff);
+  --eb-panel: var(--panel, #f6f7f9);
+  --eb-line: var(--line, #d7dae0);
+  --eb-fg: var(--fg, #1c1e22);
+  --eb-muted: var(--muted, #6b7280);
+  --eb-accent: var(--accent, #2563eb);
+  --eb-ok: var(--ok, #16a34a);
+  --eb-bad: var(--bad, #dc2626);
+  --eb-warn: var(--warn, #d97706);
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--eb-fg);
+  background: var(--eb-bg);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-size: 13px;
+}
+
+[data-theme="dark"] .ena-browser {
+  --eb-bg: var(--bg, #14161a);
+  --eb-panel: var(--panel, #1c1f25);
+  --eb-line: var(--line, #2f343d);
+  --eb-fg: var(--fg, #e6e8ec);
+  --eb-muted: var(--muted, #9aa1ad);
+}
+
+/* Toolbar */
+
+.ena-browser-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--eb-line);
+  border-bottom: none;
+  background: var(--eb-panel);
+}
+
+.ena-browser-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.ena-browser-toolbar input[type="search"] {
+  min-width: 180px;
+  padding: 3px 6px;
+  border: 1px solid var(--eb-line);
+  border-radius: 4px;
+  background: var(--eb-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.ena-browser-toolbar button {
+  padding: 3px 8px;
+  border: 1px solid var(--eb-line);
+  border-radius: 4px;
+  background: var(--eb-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ena-browser-toolbar button:hover {
+  border-color: var(--eb-accent);
+}
+
+.ena-browser-count,
+.ena-browser-selection-count {
+  color: var(--eb-muted);
+}
+
+.ena-browser-spacer {
+  flex: 1 1 auto;
+}
+
+.ena-browser-pill {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--eb-line);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ena-browser-pill[data-mode="edit"] {
+  background: var(--eb-warn);
+  color: #fff;
+}
+
+/* Columns menu */
+
+.ena-browser-columns-menu {
+  position: absolute;
+  z-index: 1200;
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--eb-line);
+  border-radius: 6px;
+  background: var(--eb-bg);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+}
+
+.ena-browser-columns-menu div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.ena-browser-columns-menu button {
+  margin-left: auto;
+}
+
+/* Grid */
+
+.ena-browser-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--eb-line);
+}
+
+/* The 30px fixed row height belongs in CSS, not in JS. */
+.ena-browser .handsontable td,
+.ena-browser .handsontable th {
+  height: 30px;
+  line-height: 18px;
+  vertical-align: middle;
+}
+
+.ena-browser .handsontable td.ena-browser-dirty {
+  background: color-mix(in srgb, var(--eb-warn) 22%, transparent);
+}
+
+.ena-browser .handsontable td.ena-browser-badge {
+  text-align: center;
+}
+
+.ena-browser-badge-value {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--eb-accent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.ena-browser-badge-value[data-zero="true"] {
+  background: var(--eb-line);
+  color: var(--eb-muted);
+}
+
+.ena-browser-actions button {
+  margin-right: 4px;
+  padding: 0 6px;
+  border: 1px solid var(--eb-line);
+  border-radius: 4px;
+  background: var(--eb-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}

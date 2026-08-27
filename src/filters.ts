@@ -21,8 +21,8 @@ const TO_HOT: Record<string, string> = {
   not_contains: "not_contains",
   begins: "begins_with",
   ends: "ends_with",
-  in: "by",
-  not_in: "by",
+  in: "by_value",
+  not_in: "by_value",
   empty: "empty",
   not_empty: "not_empty",
   gt: "gt",
@@ -39,7 +39,7 @@ const FROM_HOT: Record<string, FilterSpec["operator"]> = {
   not_contains: "not_contains",
   begins_with: "begins",
   ends_with: "ends",
-  by: "in",
+  by_value: "in",
   empty: "empty",
   not_empty: "not_empty",
   gt: "gt",
@@ -53,8 +53,8 @@ const FROM_HOT: Record<string, FilterSpec["operator"]> = {
  * Translate one spec into a Handsontable condition.
  *
  * ponytail: Handsontable has no `not_in`; pass `columnValues` (the distinct
- * values in that column) and it becomes a `by` over the complement. Without
- * them the exclusion cannot be expressed and an empty `by` list is returned,
+ * values in that column) and it becomes a `by_value` over the complement. Without
+ * them the exclusion cannot be expressed and an empty `by_value` list is returned,
  * which the caller should treat as "filter in JS instead".
  */
 export function toHandsontableCondition(
