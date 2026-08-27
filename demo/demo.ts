@@ -66,6 +66,10 @@ function configure(rows: Row[]): void {
     selectionMode: selectionSelect.value as "none" | "single" | "multi",
     rows,
     editableColumns: ["title", "alias"],
+    rowActions: [
+      { action: "release", label: "Release", title: "Release this record" },
+      { action: "cancel", label: "Cancel", title: "Cancel this record" },
+    ],
     customColumns: [
       {
         name: "reads_assigned",

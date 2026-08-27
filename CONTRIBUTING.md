@@ -13,9 +13,9 @@ pip install pre-commit && pre-commit install
 |---|---|---|
 | `pre-commit run --all-files` | whitespace/EOF/YAML/JSON hygiene, secret detection, Prettier, `tsc --noEmit` | commit + CI |
 | `npm run lint` | `tsc --noEmit` over `src`, `tests`, `demo` | CI |
-| `npm test` | Vitest unit tests (88 cases, jsdom) | CI |
+| `npm test` | Vitest unit tests (92 cases, jsdom) | CI |
 | `npm run build` | ESM + IIFE + CSS artefacts | CI |
-| `npm run test:browser` | Playwright against `demo/` (31 specs, chromium) | CI |
+| `npm run test:browser` | Playwright against `demo/` (39 specs, chromium) | CI |
 
 The `tsc` pre-commit hook needs `npm install` to have run; CI skips it there and
 typechecks in the `build` job instead.

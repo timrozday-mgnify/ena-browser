@@ -186,3 +186,51 @@ describe("edit tracking", () => {
     expect(grid.getChangeSet().rows).toEqual([]);
   });
 });
+
+describe("row actions", () => {
+  const rowActions = [
+    { action: "release", label: "Release" },
+    { action: "cancel", label: "Cancel", title: "Cancel this record" },
+  ];
+
+  it("renders one button per spec and emits row-action on click", () => {
+    const grid = makeGrid({ rowActions });
+    const seen: unknown[] = [];
+    grid.addEventListener("row-action", (event) => seen.push((event as CustomEvent).detail));
+
+    // A frozen column is painted twice: once in the master overlay, once in
+    // the visible frozen clone. Count the clone.
+    const buttons = document.querySelectorAll<HTMLButtonElement>(
+      ".ht_clone_inline_start button[data-ena-action]",
+    );
+    expect(buttons.length).toBe(rows.length * rowActions.length);
+    expect(buttons[0]?.textContent).toBe("Release");
+    expect(buttons[1]?.title).toBe("Cancel this record");
+
+    buttons[0]?.click();
+    expect(seen).toEqual([{ action: "release", key: "ERS1", row: rows[0] }]);
+  });
+
+  it("keys buttons by the row key, accession or not", () => {
+    makeGrid({ rowActions });
+    const keys = [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        ".ht_clone_inline_start button[data-ena-action='release']",
+      ),
+    ].map((button) => button.dataset["enaKey"]);
+    expect(keys).toEqual(["ERS1", "ERS2", "SAMEA3"]);
+  });
+
+  it("draws no column when no actions are configured", () => {
+    makeGrid();
+    expect(document.querySelectorAll("button[data-ena-action]")).toHaveLength(0);
+  });
+
+  it("keeps the actions column out of the layout and the columns list", () => {
+    const grid = makeGrid({ rowActions });
+    expect(grid.listColumns().map((c) => c.name)).not.toContain("__actions__");
+    expect(grid.getLayout().order).not.toContain("__actions__");
+    grid.pin("__actions__");
+    expect(grid.getLayout().pinned).toEqual([]);
+  });
+});

@@ -29,12 +29,14 @@ import type {
   FilterSpec,
   Layout,
   Row,
+  RowActionSpec,
   SortSpec,
 } from "./types.js";
 
 registerAllModules();
 
 const SELECTION_COLUMN = "__selected__";
+const ACTIONS_COLUMN = "__actions__";
 const DEFAULT_LICENSE = "non-commercial-and-evaluation";
 
 /** Emits the same event names the element re-dispatches as `ena-browser:*`. */
@@ -86,12 +88,14 @@ export class EnaGrid extends EventTarget {
   private mount(): void {
     this.container.classList.add("ena-browser-grid", "ht-theme-main");
     this.hot = new Handsontable(this.container, this.settings());
+    this.container.addEventListener("click", this.onContainerClick);
     this.applyFiltersToGrid();
     this.applySortToGrid();
     this.emit("ready", {});
   }
 
   destroy(): void {
+    this.container.removeEventListener("click", this.onContainerClick);
     this.hot?.destroy();
     this.hot = null;
   }
@@ -99,6 +103,17 @@ export class EnaGrid extends EventTarget {
   /** Present so tests can assert the instance is really gone. */
   get isDestroyed(): boolean {
     return this.hot === null || this.hot.isDestroyed;
+  }
+
+  /**
+   * The row object behind a *visual* row index. `getSourceDataAtRow` takes a
+   * physical index, and filtering or sorting makes the two differ — reading it
+   * with a visual index silently returns the wrong row.
+   */
+  private sourceRow(visualRow: number): Row | undefined {
+    const physical = this.hot?.toPhysicalRow(visualRow);
+    if (physical === null || physical === undefined) return undefined;
+    return this.hot?.getSourceDataAtRow(physical) as Row | undefined;
   }
 
   private emit<T>(name: string, detail: T): void {
@@ -145,12 +160,16 @@ export class EnaGrid extends EventTarget {
     }
   }
 
-  /** Display order: selection column, then pins in pin order, then the rest. */
+  /**
+   * Display order: selection column, row actions, then pins in pin order, then
+   * the rest. The first two are always frozen — they are controls, not data.
+   */
   private displayOrder(): string[] {
     const names: string[] = [];
     if (this.config.selectionMode && this.config.selectionMode !== "none") {
       names.push(SELECTION_COLUMN);
     }
+    if (this.rowActions.length > 0) names.push(ACTIONS_COLUMN);
     names.push(...this.pinned);
     names.push(...this.order.filter((n) => !this.pinned.includes(n)));
     return names;
@@ -174,6 +193,7 @@ export class EnaGrid extends EventTarget {
   private hotColumns(): Handsontable.ColumnSettings[] {
     return this.displayOrder().map((name) => {
       if (name === SELECTION_COLUMN) return this.selectionColumn();
+      if (name === ACTIONS_COLUMN) return this.actionsColumn();
       if (this.isCustom(name)) return this.customColumn(name);
       const spec = this.specFor(name);
       return {
@@ -185,6 +205,54 @@ export class EnaGrid extends EventTarget {
       };
     });
   }
+
+  private get rowActions(): RowActionSpec[] {
+    return this.config.rowActions ?? [];
+  }
+
+  /**
+   * One button per `RowActionSpec`. The element only announces the click —
+   * release/hold/suppress/cancel are the host's job (README §6). Clicks are
+   * caught by a single delegated listener, because Handsontable throws these
+   * cells away and rebuilds them on every render.
+   */
+  private actionsColumn(): Handsontable.ColumnSettings {
+    return {
+      data: (() => "") as Handsontable.ColumnSettings["data"],
+      title: " ",
+      readOnly: true,
+      width: this.widths[ACTIONS_COLUMN] ?? 24 + this.rowActions.length * 62,
+      className: "ena-browser-actions",
+      renderer: (_instance, td, visualRow) => {
+        td.textContent = "";
+        const row = this.sourceRow(visualRow);
+        if (!row) return;
+        const key = rowKey(this.config.entity, row);
+        for (const action of this.rowActions) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = action.label;
+          if (action.title) button.title = action.title;
+          button.dataset["enaAction"] = action.action;
+          button.dataset["enaKey"] = key;
+          td.appendChild(button);
+        }
+      },
+    };
+  }
+
+  private onContainerClick = (event: MouseEvent): void => {
+    const button = (event.target as HTMLElement | null)?.closest?.(
+      "button[data-ena-action]",
+    ) as HTMLButtonElement | null;
+    if (!button) return;
+    event.stopPropagation();
+    const action = button.dataset["enaAction"];
+    const key = button.dataset["enaKey"];
+    if (action !== undefined && key !== undefined) {
+      this.emitRowAction(action, key);
+    }
+  };
 
   private selectionColumn(): Handsontable.ColumnSettings {
     const values = (row: Row, value?: unknown): unknown => {
@@ -238,8 +306,8 @@ export class EnaGrid extends EventTarget {
   private settings(): Handsontable.GridSettings {
     const columns = this.hotColumns();
     this.active = this.displayOrder();
-    const selectionOffset =
-      this.config.selectionMode && this.config.selectionMode !== "none" ? 1 : 0;
+    // The control columns are always frozen, ahead of the user's pins.
+    const controlOffset = this.displayOrder().filter(isControlColumn).length;
     return {
       data: this.rows,
       columns,
@@ -259,13 +327,16 @@ export class EnaGrid extends EventTarget {
       manualColumnMove: true,
       manualColumnResize: true,
       hiddenColumns: { columns: this.hiddenIndices(), indicators: true },
-      fixedColumnsStart: selectionOffset + this.pinned.length,
+      fixedColumnsStart: controlOffset + this.pinned.length,
       contextMenu: this.contextMenu(),
       licenseKey: this.config.license ?? DEFAULT_LICENSE,
       stretchH: "last",
       autoWrapRow: false,
       height: this.config.height ?? "100%",
       className: "ena-browser-table",
+      // `cells` is handed a *physical* row index, unlike the hooks below,
+      // which are visual — see sourceRow(). Covered by edit.spec.ts's
+      // dirty-cell test, which sorts before editing.
       cells: (row, _col, prop) => {
         const name = typeof prop === "string" ? prop : "";
         const data = this.rows[row];
@@ -290,11 +361,15 @@ export class EnaGrid extends EventTarget {
       },
       afterOnCellMouseDown: (_event, coords) => {
         if (coords.row < 0) return;
-        const data = this.hot?.getSourceDataAtRow(coords.row) as Row | null;
+        const data = this.sourceRow(coords.row);
         if (!data) return;
         const key = rowKey(this.config.entity, data);
         const name = this.active[coords.col];
-        if (this.config.selectionMode === "single" && name !== SELECTION_COLUMN) {
+        if (
+          this.config.selectionMode === "single" &&
+          name !== SELECTION_COLUMN &&
+          name !== ACTIONS_COLUMN
+        ) {
           this.setRowSelected(key, true);
         }
       },
@@ -320,7 +395,7 @@ export class EnaGrid extends EventTarget {
           },
           callback: () => {
             const name = columnAt();
-            if (!name || name === SELECTION_COLUMN) return;
+            if (!name || isControlColumn(name)) return;
             if (this.pinned.includes(name)) this.unpin(name);
             else this.pin(name);
           },
@@ -329,7 +404,7 @@ export class EnaGrid extends EventTarget {
           name: () => "Hide column",
           callback: () => {
             const name = columnAt();
-            if (name && name !== SELECTION_COLUMN) this.hideColumn(name);
+            if (name && !isControlColumn(name)) this.hideColumn(name);
           },
         },
         show_all: {
@@ -538,7 +613,7 @@ export class EnaGrid extends EventTarget {
   // ------------------------------------------------------------------ layout
 
   pin(column: string): void {
-    if (column === SELECTION_COLUMN || this.pinned.includes(column)) return;
+    if (isControlColumn(column) || this.pinned.includes(column)) return;
     this.pinned.push(column);
     this.rebuild();
     this.emit("layout-change", { layout: this.getLayout() });
@@ -581,7 +656,7 @@ export class EnaGrid extends EventTarget {
   /** Data columns, in display order — what the toolbar's Columns menu lists. */
   listColumns(): ColumnSpec[] {
     return this.displayOrder()
-      .filter((name) => name !== SELECTION_COLUMN)
+      .filter((name) => !isControlColumn(name))
       .map((name) => this.specFor(name))
       .filter((spec): spec is ColumnSpec => spec !== undefined);
   }
@@ -592,7 +667,7 @@ export class EnaGrid extends EventTarget {
     const moved: string[] = [];
     for (let visual = 0; visual < count; visual += 1) {
       const name = this.active[this.hot.toPhysicalColumn(visual)];
-      if (name && name !== SELECTION_COLUMN) moved.push(name);
+      if (name && !isControlColumn(name)) moved.push(name);
     }
     // Pins keep their leading positions; anything dragged out of the pinned
     // block stops being pinned.
@@ -715,7 +790,7 @@ export class EnaGrid extends EventTarget {
     let tracked = false;
     for (const [visualRow, prop, oldValue, newValue] of changes) {
       if (typeof prop !== "string") continue; // accessor columns: not row data
-      const row = this.hot?.getSourceDataAtRow(visualRow) as Row | undefined;
+      const row = this.sourceRow(visualRow);
       if (!row) continue;
       const key = rowKey(this.config.entity, row);
       const accession = typeof row["accession"] === "string" ? row["accession"] : key;
@@ -761,4 +836,9 @@ export class EnaGrid extends EventTarget {
   }
 }
 
-export { SELECTION_COLUMN };
+/** The two columns the grid owns: they are controls, never data. */
+function isControlColumn(name: string): boolean {
+  return name === SELECTION_COLUMN || name === ACTIONS_COLUMN;
+}
+
+export { ACTIONS_COLUMN, SELECTION_COLUMN };

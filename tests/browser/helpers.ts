@@ -24,8 +24,12 @@ export async function openDemo(
 }
 
 /**
- * Visible column headers in display order. The top overlay carries every
- * column, frozen ones included; blank headers (the selection column) drop out.
+ * Every column header, in display order. Blank headers (the selection and
+ * row-action columns) drop out.
+ *
+ * Handsontable virtualises columns: only what fits the viewport is in the DOM.
+ * Specs that assert on the full set widen the viewport with `test.use()` so
+ * every column fits — scrolling the overlays from a test is unreliable.
  */
 export async function headers(page: Page): Promise<string[]> {
   const texts = await page.locator("#browser .ht_clone_top thead span.colHeader").allTextContents();

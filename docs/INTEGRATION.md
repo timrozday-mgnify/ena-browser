@@ -4,10 +4,7 @@ Three copy-pasteable snippets. All of them use the same element; only the
 wiring differs.
 
 No tag has been cut yet, so the vendored/pinned versions below are what the
-first release will look like, not something you can `npm i` today. One caveat
-before you start: **`rowActions` renders no buttons yet** — see
-[Implementation status](../README.md#8-implementation-status) if you need
-release/hold/suppress/cancel controls.
+first release will look like, not something you can `npm i` today.
 
 ## 1. The assistant's Records tab (no build step)
 
@@ -53,6 +50,26 @@ arrives. The IIFE bundles Handsontable, so nothing else is needed.
 ```
 
 After a successful submission, call `records.clearChanges()`.
+
+### Lifecycle buttons
+
+`rowActions` draws a frozen button column; the element announces the click and
+does nothing else, so release/hold/suppress/cancel stay entirely with the host.
+
+```js
+records.applyConfig({
+  rowActions: [
+    { action: "release", label: "Release", title: "Release this record now" },
+    { action: "suppress", label: "Suppress" },
+  ],
+});
+
+records.addEventListener("ena-browser:row-action", async (event) => {
+  const { action, key, row } = event.detail;
+  await fetch(`/api/records/${key}/${action}`, { method: "POST" });
+  records.setRows(await reload());   // the element re-reads nothing on its own
+});
+```
 
 ## 2. The pairing panel (samples ↔ reads)
 

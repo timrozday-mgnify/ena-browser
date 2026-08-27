@@ -92,3 +92,57 @@ test("Discard changes restores the values", async ({ page }) => {
   );
   expect(title).toBe("Gut metagenome, donor A");
 });
+
+test("edits land on the right row when the grid is sorted", async ({ page }) => {
+  await openDemo(page, { entity: "samples", mode: "edit" });
+
+  // Sort descending so the visual order stops matching the physical one:
+  // "Soil metagenome, plot 3" (physical row 2) becomes visual row 0.
+  await page.evaluate(() => {
+    (
+      document.getElementById("browser") as unknown as {
+        setSort(specs: unknown[]): void;
+      }
+    ).setSort([{ column: "title", order: "desc" }]);
+  });
+
+  await editCell(page, "Soil metagenome, plot 3", 0, "Edited soil");
+
+  const set = await changeSet(page);
+  expect(set.rows).toHaveLength(1);
+  expect(set.rows[0]).toMatchObject({
+    key: "SAMEA4000003",
+    before: { title: "Soil metagenome, plot 3" },
+    after: { title: "Edited soil" },
+  });
+});
+
+test("edits land on the right row when the grid is filtered", async ({ page }) => {
+  await openDemo(page, { entity: "samples", mode: "edit" });
+  await page.locator('[data-role="quick-filter"]').fill("soil");
+  await expect(page.locator("#browser .ht_master tbody tr")).toHaveCount(1);
+
+  await editCell(page, "Soil metagenome, plot 3", 0, "Edited soil");
+
+  expect((await changeSet(page)).rows[0]).toMatchObject({
+    key: "SAMEA4000003",
+    after: { title: "Edited soil" },
+  });
+});
+
+test("the edited cell is the one marked dirty", async ({ page }) => {
+  await openDemo(page, { entity: "samples", mode: "edit" });
+  await page.evaluate(() => {
+    (
+      document.getElementById("browser") as unknown as {
+        setSort(specs: unknown[]): void;
+      }
+    ).setSort([{ column: "title", order: "desc" }]);
+  });
+
+  await editCell(page, "Soil metagenome, plot 3", 0, "Edited soil");
+
+  const dirty = page.locator("#browser .ht_master td.ena-browser-dirty");
+  await expect(dirty).toHaveCount(1);
+  await expect(dirty).toHaveText("Edited soil");
+});

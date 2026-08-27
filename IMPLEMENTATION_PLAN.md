@@ -213,6 +213,18 @@ element re-emits, so nothing needed a callback bag. Notes on the numbered items:
   `grid.test.ts` and `custom-column.spec.ts`.
 - jsdom needs `ResizeObserver` and `IntersectionObserver` stubs
   (`tests/setup.ts`) before Handsontable will construct at all.
+- **Row actions** (README §3, not itemised in this plan) are a second control
+  column beside the selection checkbox: `ACTIONS_COLUMN`, always frozen, one
+  `<button>` per `RowActionSpec`, emitting `row-action` and doing nothing else.
+  Clicks are caught by one delegated listener on the container, because
+  Handsontable discards and rebuilds these cells on every render. Both control
+  columns are excluded from `listColumns()`, the layout, pinning and the quick
+  filter — they are controls, not data.
+- Handsontable hands hooks and renderers **visual** row indices while
+  `getSourceDataAtRow` takes a **physical** one; the two differ the moment
+  anything is filtered or sorted. `EnaGrid.sourceRow()` is the only place that
+  conversion happens. `cells()` is the exception — it gets a physical index
+  already. `edit.spec.ts` covers both directions.
 
 ---
 
@@ -323,7 +335,7 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
    - `lifecycle.spec.ts` — removing the element from the DOM destroys the
      Handsontable instance.
 
-**Built** — 31 specs across the eight files, all passing. Notes:
+**Built** — 39 specs across nine files (`row-action.spec.ts` came with the row-action column), all passing. Notes:
 
 - `playwright.config.ts` runs the **dev server**, not `vite preview`:
   `demo/demo.ts` imports `src/` directly, and preview only serves the library
@@ -369,16 +381,10 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
 
 ## Known gaps
 
-Everything in README §3 exists except one item:
+Everything in README §3 exists, `rowActions` included (a frozen button column,
+one button per spec, added after the first pass — see the Phase 2 note).
 
-- **`rowActions` renders nothing.** The config key is accepted, the
-  `RowActionSpec` type exists, and `row-action` fires — but only from
-  `EnaGrid.emitRowAction(action, key)`, which no UI calls. There is no button
-  column. A host wanting release/hold/suppress/cancel buttons today has to draw
-  them itself and call into the grid. Implementing it is a small, self-contained
-  job: one pinned column with a renderer per `RowActionSpec`.
-
-Two smaller notes, deliberate rather than missing:
+Two notes, deliberate rather than missing:
 
 - The element exposes `setSort()` but not `getSort()`; `EnaGrid` has both, and
   `filter-change` carries the current sort on every change.
@@ -403,7 +409,7 @@ CI: one GitHub Actions workflow — `npm ci`, `npm run lint`, `npm test`,
 `pre-commit` job runs alongside it with the `tsc` hook skipped (it needs real
 `node_modules`, which the `build` job has).
 
-Current counts: **88 Vitest cases**, **31 Playwright specs**.
+Current counts: **92 Vitest cases**, **39 Playwright specs**.
 
 ---
 

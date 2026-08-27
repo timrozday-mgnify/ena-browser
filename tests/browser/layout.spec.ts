@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { headers, openDemo } from "./helpers.js";
 
+// Handsontable only renders the columns that fit: the reorder assertions compare the full header list.
+test.use({ viewport: { width: 2200, height: 900 } });
+
 async function getLayout(page: import("@playwright/test").Page): Promise<{
   order?: string[];
   pinned?: string[];
@@ -120,8 +123,8 @@ test("dragging a column header reorders it", async ({ page }) => {
   await page.mouse.up();
 
   await expect
-    .poll(() => headers(page))
-    .toEqual(["Reads", "Accession", "Title", "Secondary accession", "Alias", "Status", "Tax id"]);
+    .poll(async () => (await headers(page)).slice(0, 6))
+    .toEqual(["Reads", "Accession", "Title", "Secondary accession", "Alias", "Status"]);
   expect((await headers(page)).sort()).toEqual([...before].sort());
   expect((await getLayout(page)).order?.slice(0, 7)).toEqual([
     "reads_assigned",

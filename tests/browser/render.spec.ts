@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { headers, openDemo, renderedRowCount } from "./helpers.js";
 
+// Handsontable only renders the columns that fit: every column of every entity has to be in the DOM.
+test.use({ viewport: { width: 2200, height: 900 } });
+
 const EXPECTED: Record<string, string[]> = {
   studies: ["Accession", "Secondary accession", "Alias", "Title", "Status"],
   samples: ["Accession", "Secondary accession", "Alias", "Title", "Status"],

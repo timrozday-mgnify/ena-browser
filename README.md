@@ -83,6 +83,7 @@ interface EnaBrowserConfig {
   selectionMode?: SelectionMode;   // default "none"
   editableColumns?: string[];      // in edit mode, the only writable fields
   rowActions?: RowActionSpec[];    // buttons the element renders, the host executes
+                                   // -> a frozen button column; click emits row-action
   layout?: Layout;                 // pinned/hidden/ordered columns + widths
   height?: number | string;
   license?: string;                // Handsontable licenseKey passthrough
@@ -114,7 +115,7 @@ All are `CustomEvent`s on the element, prefixed `ena-browser:`.
 | `ready` | `{}` | Grid mounted. |
 | `selection-change` | `{ keys, rows, lastKey }` | A row is selected/deselected. **This is the pairing hook** — the host records `lastKey` and waits for the next click in the reads element. |
 | `change` | `{ changes: ChangeSet }` | An edit was committed (edit mode only). |
-| `row-action` | `{ action, key, row }` | A row action was invoked. The element does nothing else — the host performs release/hold/suppress/cancel. **Not wired to any UI yet** — see [Implementation status](#8-implementation-status). |
+| `row-action` | `{ action, key, row }` | A `rowActions` button was clicked. The element does nothing else — the host performs release/hold/suppress/cancel. |
 | `filter-change` | `{ filters, sort, visibleCount }` | Filters or sort changed. |
 | `layout-change` | `{ layout }` | Columns pinned, moved, hidden or resized. |
 | `error` | `{ message }` | A configured `source` fetch failed. |
@@ -231,8 +232,8 @@ call, no postMessage bridge, because it is not in an iframe.
 npm install
 npm run dev        # then open http://127.0.0.1:5173/demo/index.html
 npm run lint       # tsc --noEmit
-npm test           # Vitest, 88 cases
-npm run test:browser  # Playwright against demo/, 31 specs
+npm test           # Vitest, 92 cases
+npm run test:browser  # Playwright against demo/, 39 specs
 npm run build      # ESM + IIFE + CSS + .d.ts into dist/
 ```
 
@@ -263,18 +264,12 @@ protected: PR only, both checks green. Setup and the exact commands are in
 
 Phases 0–6 of [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) are built and
 tested; that file carries a `Built` note per phase with the details. Everything
-in §3 above works **except one item**:
+in §3 above works, `rowActions` included.
 
-- **`rowActions` renders nothing yet.** The config key is accepted and the
-  `row-action` event exists, but no button column is drawn — the event only
-  fires from `EnaGrid.emitRowAction(action, key)`, which no UI calls. A host
-  needing release/hold/suppress/cancel buttons today draws them itself. Adding
-  the column is a small, self-contained job.
-
-Two smaller deviations, deliberate and recorded in the plan: `dist/ena-browser.css`
-carries Handsontable's CSS as well as the element's own (§2), and the element
-exposes `setSort()` but not `getSort()` — `filter-change` reports the current
-sort on every change.
+Two deliberate deviations, recorded in the plan: `dist/ena-browser.css` carries
+Handsontable's CSS as well as the element's own (§2), and the element exposes
+`setSort()` but not `getSort()` — `filter-change` reports the current sort on
+every change.
 
 Not tagged yet. Consumers pin a git tag, so the first release is the gate on
 §9 below.
