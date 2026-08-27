@@ -51,12 +51,17 @@ Conventions: TypeScript strict, no framework, no dependency added that isn't in
    - `--mode iife`: `formats: ["iife"]`, `name: "EnaBrowser"`, **nothing external**
      (Handsontable bundled), `emptyOutDir: false`.
    CSS emits to `dist/ena-browser.css` in both.
-4. `.gitignore` (`node_modules`, `dist`, `test-results`, `.vite`), `.editorconfig`,
-   `.pre-commit-config.yaml` matching the sibling repos.
+4. Already in the repo: `.gitignore`, `.editorconfig`, `.pre-commit-config.yaml`,
+   `.prettierrc`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`. Add `prettier`
+   to `devDependencies` (the pre-commit hook runs its own copy, but editors and
+   `npx prettier` want it local), run `pre-commit install`, and follow the
+   `ponytail:` note in `.github/workflows/ci.yml` — split the guarded build
+   block into named steps and turn on `cache: npm`.
 5. `README.md` (already written), this file, `LICENSE` — match the sibling repos.
 
 **Check:** `npm install && npm run build` produces `dist/ena-browser.js`,
-`dist/ena-browser.iife.js`, `dist/ena-browser.css`.
+`dist/ena-browser.iife.js`, `dist/ena-browser.css`; `pre-commit run --all-files`
+and both CI jobs pass on the Phase 0 PR.
 
 ---
 

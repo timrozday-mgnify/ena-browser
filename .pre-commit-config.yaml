@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.6
+    hooks:
+      - id: prettier
+        types_or: [ts, javascript, css, html, json, yaml] # ponytail: docs are hand-wrapped; prettier only churns them
+
+  # ponytail: typecheck needs `npm install` first; it is the only project-aware
+  # check worth paying for on commit. Tests run in CI, not here.
+  - repo: local
+    hooks:
+      - id: tsc
+        name: typecheck
+        entry: npm run lint
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$

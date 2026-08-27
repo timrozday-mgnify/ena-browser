@@ -22,7 +22,8 @@ Three uses drive the design:
    emit a change set the host turns into an ENA MODIFY submission.
 
 Status: **design only.** No code yet — see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
-for the step-by-step build.
+for the step-by-step build, and [CONTRIBUTING.md](CONTRIBUTING.md) for the checks
+every PR has to pass.
 
 ---
 
@@ -213,7 +214,17 @@ call, no postMessage bridge, because it is not in an iframe.
 
 ---
 
-## 7. Consumers
+## 7. Development
+
+`pre-commit` (hygiene + secret detection + Prettier + `tsc --noEmit`) runs on
+commit; GitHub Actions (`.github/workflows/ci.yml`) re-runs it on every push and
+PR alongside typecheck, Vitest, the library build and Playwright. `main` is
+protected: PR only, both checks green. Setup and the exact commands are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 8. Consumers
 
 - **mimicc-ena-submission-assistant** — vendors `dist/ena-browser.iife.js` +
   `.css` into `server/static/vendor/` at a pinned tag, exactly as it vendors the
