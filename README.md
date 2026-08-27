@@ -21,9 +21,11 @@ Three uses drive the design:
    everything, include or exclude cancelled/suppressed records, edit cells, and
    emit a change set the host turns into an ENA MODIFY submission.
 
-Status: **design only.** No code yet — see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
-for the step-by-step build, and [CONTRIBUTING.md](CONTRIBUTING.md) for the checks
-every PR has to pass.
+Status: **implemented, untagged.** Phases 0–6 of
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) are built and tested (Vitest +
+Playwright); see [docs/INTEGRATION.md](docs/INTEGRATION.md) for copy-pasteable
+snippets and [CONTRIBUTING.md](CONTRIBUTING.md) for the checks every PR has to
+pass.
 
 ---
 
@@ -56,7 +58,7 @@ every PR has to pass.
 |---|---|---|
 | `dist/ena-browser.js` (ESM) + `dist/ena-browser.d.ts` | dhtb, the standalone app, anything with a bundler | `handsontable` is a **peer** dependency (not bundled) to avoid two Handsontable copies in one page. |
 | `dist/ena-browser.iife.js` | **mimicc-ena-submission-assistant** (`<script src>`, no build step) | Handsontable **is** bundled here. Registers `<ena-browser>` and exposes `window.EnaBrowser`. |
-| `dist/ena-browser.css` | both | Element styles only. Handsontable's own CSS ships inside the IIFE and is imported by the ESM entry. |
+| `dist/ena-browser.css` | both | Element styles **plus** Handsontable's own CSS and the `ht-theme-main` theme — one stylesheet, so the IIFE consumer needs no second `<link>`. The ESM entry also `import`s Handsontable's CSS by module path, which a bundler dedupes. |
 | `demo/index.html` | humans + Playwright | Static page, fixture rows by default, live Reports API with credentials entered in the page. This is the seed of the standalone "browse my Webin reports" app. |
 
 ---
@@ -176,11 +178,19 @@ Two shipped implementations:
 
 - `rowsSource(rows)` — trivial, for hosts that already have the data.
 - `enaReportsSource({ baseUrl, username, password, test })` — calls the Webin
-  Reports API (`/api/v2/reports/<entity>`) directly from the browser with Basic
-  auth. Optional; used by `demo/` and the future standalone app. If ENA's CORS
-  policy blocks a direct browser call, this adapter is the *only* thing that
-  breaks, and hosts with a backend (the assistant) are unaffected. Verify this
-  in Phase 6 of the plan before promising a backend-free standalone app.
+  Reports API (`https://<host>/ena/submit/report/<entity>?format=json`, where
+  `studies` is ENA's `projects`) directly from the browser with Basic auth.
+  Hosts and paths mirror `ena-api-client/ena_api/config.py`. Optional; used by
+  `demo/` and the future standalone app. Pass `baseUrl` to point it at a
+  same-origin proxy instead.
+
+  **CORS (checked 2026-08-27):** both `www.ebi.ac.uk` and `wwwdev.ebi.ac.uk`
+  answer the preflight for `GET` + `Authorization` with
+  `access-control-allow-origin: <the requesting origin>` and
+  `access-control-allow-credentials: true`, so a backend-free browser app is
+  viable. Only the preflight was verified — an authenticated `GET` from a page
+  still needs a real Webin account, so treat the end-to-end path as unproven
+  until someone runs `demo/index.html` against their own credentials.
 
 ---
 
@@ -232,6 +242,7 @@ protected: PR only, both checks green. Setup and the exact commands are in
   `server/static/records.js` and the `sample-item` list in
   `server/static/reads.js`. See that repo's `ENA_BROWSER_PLAN.md`.
 - **Standalone ENA Webin report browser** — `demo/` grown into its own page:
-  credentials in, entity picker, grid out. No backend.
+  credentials in, entity picker, grid out. No backend (see the CORS note in
+  §4).
 - **dataharmonizer-template-builder** — no current use; the ESM build is
   importable if one appears.
