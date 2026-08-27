@@ -46,6 +46,10 @@ export const DEFAULT_COLUMNS: Record<Entity, string[]> = {
     "study_accession",
     "sample_accession",
     "status",
+    // Registration and file archival are separate events: `status` is the
+    // release status, `process_status` is whether ENA has finished processing
+    // the reads. The host fills it from the run-processing report.
+    "process_status",
   ],
   experiments: ["accession", "alias", "title", "study_accession", "sample_accession", "status"],
   analyses: ["accession", "alias", "title", "study_accession", "status"],
