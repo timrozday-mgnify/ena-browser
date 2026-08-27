@@ -28,17 +28,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      # ponytail: one guarded block until Phase 0 lands package.json; then split
-      # into named steps, drop the guard, and add `cache: npm` above (it needs a
-      # lockfile to exist).
-      - run: |
-          [ -f package.json ] || { echo "no package.json yet (pre Phase 0) - nothing to build"; exit 0; }
-          npm ci
-          npm run lint
-          npm test
-          npm run build
-          npx playwright install --with-deps chromium
-          npm run test:browser
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

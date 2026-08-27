@@ -1,0 +1,37 @@
+{
+  "name": "ena-browser",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/ena-browser.js",
+  "types": "./dist/ena-browser.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/ena-browser.d.ts",
+      "import": "./dist/ena-browser.js"
+    },
+    "./style.css": "./dist/ena-browser.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build && vite build --mode iife && tsc -p tsconfig.build.json && echo 'export * from \"./index\";' > dist/ena-browser.d.ts",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "lint": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "handsontable": "^17.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "handsontable": "^17.1.0",
+    "jsdom": "^25.0.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  }
+}
