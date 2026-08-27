@@ -93,13 +93,14 @@ interface EnaBrowserConfig {
 
 | Method | Purpose |
 |---|---|
+| `applyConfig(partial)` | Merge a partial config in. Every attribute and `config` write funnels through this; structural keys (`columns`, `customColumns`, `selectionMode`, `rowActions`, `license`, `height`) rebuild the grid, preserving layout and selection. |
 | `setRows(rows)` / `getRows()` | Replace / read the backing data. |
-| `refresh()` | Re-run `source.fetch()` if a source was configured. |
+| `refresh()` | Re-run `source.fetch()` if a source was configured. Aborts any fetch still in flight. |
 | `setMode(mode)` | Flip read ↔ edit without losing filters or selection. |
 | `getChangeSet(): ChangeSet` | `{ rows: [{ key, accession, before, after, changed: string[] }] }` — everything the host needs to build a MODIFY manifest. |
 | `clearChanges()` | Call after the host has successfully submitted. |
 | `getSelection(): string[]` / `setSelection(keys)` / `clearSelection()` | Row keys (accessions), in click order. |
-| `setCustomValues(column, map)` | Update a dynamic column, e.g. `setCustomValues("reads_assigned", {ERS1: 2})`. Cheap: patches cells in place, never re-sorts or loses selection. |
+| `setCustomValues(column, map)` | Update a dynamic column, e.g. `setCustomValues("reads_assigned", {ERS1: 2})` — a plain object or a `Map`, merged into what is already there. Cheap: patches cells in place, never re-sorts or loses selection. |
 | `setFilters(specs)` / `getFilters()` / `setSort(specs)` | Programmatic filter/sort control; mirrors what the UI writes. |
 | `getLayout()` / `setLayout(layout)` | Column order, pins, hidden columns, widths — for the host to persist. |
 | `getVisibleRows()` | The rows currently passing the filters, in display order (for "export what I see"). |
@@ -113,7 +114,7 @@ All are `CustomEvent`s on the element, prefixed `ena-browser:`.
 | `ready` | `{}` | Grid mounted. |
 | `selection-change` | `{ keys, rows, lastKey }` | A row is selected/deselected. **This is the pairing hook** — the host records `lastKey` and waits for the next click in the reads element. |
 | `change` | `{ changes: ChangeSet }` | An edit was committed (edit mode only). |
-| `row-action` | `{ action, key, row }` | A `rowActions` button was clicked. The element does nothing else — the host performs release/hold/suppress/cancel. |
+| `row-action` | `{ action, key, row }` | A row action was invoked. The element does nothing else — the host performs release/hold/suppress/cancel. **Not wired to any UI yet** — see [Implementation status](#8-implementation-status). |
 | `filter-change` | `{ filters, sort, visibleCount }` | Filters or sort changed. |
 | `layout-change` | `{ layout }` | Columns pinned, moved, hidden or resized. |
 | `error` | `{ message }` | A configured `source` fetch failed. |
@@ -226,6 +227,30 @@ call, no postMessage bridge, because it is not in an iframe.
 
 ## 7. Development
 
+```bash
+npm install
+npm run dev        # then open http://127.0.0.1:5173/demo/index.html
+npm run lint       # tsc --noEmit
+npm test           # Vitest, 88 cases
+npm run test:browser  # Playwright against demo/, 31 specs
+npm run build      # ESM + IIFE + CSS + .d.ts into dist/
+```
+
+### Repo map
+
+| Path | What lives there |
+|---|---|
+| `src/types.ts` | The public API. Nothing else exports types. |
+| `src/entities.ts` | Row keys, per-entity default columns, the ENA status vocabulary. Mirrors `ena-api-client/ena_api/models.py`. |
+| `src/filters.ts` | `FilterSpec` ↔ Handsontable conditions, plus a DOM-free evaluator. |
+| `src/changes.ts` | `ChangeTracker` — edits in, change set out, reverts removed. |
+| `src/grid.ts` | `EnaGrid`: the Handsontable instance and everything ENA-specific. |
+| `src/toolbar.ts` | The strip above the grid. Controls carry `data-role` attributes. |
+| `src/element.ts` | `<ena-browser>` — a thin shell over the two above. |
+| `src/sources/` | `rowsSource`, `enaReportsSource`. |
+| `demo/` | The demo page, and the seed of the standalone app. |
+| `tests/unit`, `tests/browser`, `tests/fixtures` | Vitest, Playwright, fixture rows per entity. |
+
 `pre-commit` (hygiene + secret detection + Prettier + `tsc --noEmit`) runs on
 commit; GitHub Actions (`.github/workflows/ci.yml`) re-runs it on every push and
 PR alongside typecheck, Vitest, the library build and Playwright. `main` is
@@ -234,7 +259,27 @@ protected: PR only, both checks green. Setup and the exact commands are in
 
 ---
 
-## 8. Consumers
+## 8. Implementation status
+
+Phases 0–6 of [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) are built and
+tested; that file carries a `Built` note per phase with the details. Everything
+in §3 above works **except one item**:
+
+- **`rowActions` renders nothing yet.** The config key is accepted and the
+  `row-action` event exists, but no button column is drawn — the event only
+  fires from `EnaGrid.emitRowAction(action, key)`, which no UI calls. A host
+  needing release/hold/suppress/cancel buttons today draws them itself. Adding
+  the column is a small, self-contained job.
+
+Two smaller deviations, deliberate and recorded in the plan: `dist/ena-browser.css`
+carries Handsontable's CSS as well as the element's own (§2), and the element
+exposes `setSort()` but not `getSort()` — `filter-change` reports the current
+sort on every change.
+
+Not tagged yet. Consumers pin a git tag, so the first release is the gate on
+§9 below.
+
+## 9. Consumers
 
 - **mimicc-ena-submission-assistant** — vendors `dist/ena-browser.iife.js` +
   `.css` into `server/static/vendor/` at a pinned tag, exactly as it vendors the

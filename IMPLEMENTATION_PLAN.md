@@ -1,5 +1,12 @@
 # ena-browser — implementation plan
 
+**Status: phases 0–6 are built.** This file stays as written — it is the
+schedule that was followed, not a live checklist — with a `Built` note under
+each phase saying what actually landed and where it diverged. The one piece of
+the README's API that is *not* implemented is listed under
+[Known gaps](#known-gaps) at the end; everything else on this page exists and is
+tested.
+
 Step-by-step build order for an agent. Read [README.md](README.md) first; it is
 the contract, this is the schedule. Each phase ends with something runnable and
 a test that fails if the phase's logic breaks. Do not start a phase before the
@@ -63,6 +70,20 @@ Conventions: TypeScript strict, no framework, no dependency added that isn't in
 `dist/ena-browser.iife.js`, `dist/ena-browser.css`; `pre-commit run --all-files`
 and both CI jobs pass on the Phase 0 PR.
 
+**Built.** All three artefacts plus `dist/ena-browser.d.ts` and per-module
+`.d.ts` files. Changes to the plan as written:
+
+- Two tsconfigs, not one: `tsconfig.json` (`noEmit`, covers `src`, `tests`,
+  `demo` and the config files — this is what `npm run lint` and the pre-commit
+  hook check) and `tsconfig.build.json` (`emitDeclarationOnly` over `src`).
+  `tsc -b` would have needed a composite project for no gain.
+- `npm run build` runs the two Vite builds *first*, then `tsc`, because the ESM
+  build empties `dist/`. It finishes by writing a one-line
+  `dist/ena-browser.d.ts` re-exporting `./index`, which is what
+  `package.json#types` points at.
+- `@types/node` added (`playwright.config.ts` reads `process.env`).
+- No `LICENSE`: no sibling repo has one, so there was nothing to match.
+
 ---
 
 ## Phase 1 — Types and pure logic (no DOM)
@@ -117,6 +138,14 @@ Files: `src/types.ts`, `src/entities.ts`, `src/filters.ts`, `src/changes.ts`.
 - `entities.test.ts` — `rowKey` fallback chain; `mergeColumns` keeps unknown
   data keys and puts custom columns last; duplicate names collapse.
 
+**Built.** 63 cases across the three files, all as specified. One thing the plan
+could not know: Handsontable's value-list condition is named **`by_value`**, not
+`by`, so that is what `toHandsontableCondition` emits. And Handsontable has no
+`not_in` at all — `toHandsontableCondition(spec, columnValues)` turns it into a
+`by_value` over the complement, which means `not_in` round-trips back as an
+equivalent `in` rather than as itself. Every other operator round-trips
+verbatim, and both behaviours are asserted in `filters.test.ts`.
+
 ---
 
 ## Phase 2 — The grid core
@@ -166,6 +195,25 @@ the grid testable in isolation.
 the real interaction tests are Phase 5 (Playwright) — jsdom does not render
 Handsontable faithfully enough to trust for layout.
 
+**Built.** `EnaGrid extends EventTarget` and dispatches the event names the
+element re-emits, so nothing needed a callback bag. Notes on the numbered items:
+
+- (1) `dropdownMenu` is the filter items only
+  (`filter_by_condition`, `filter_operators`, `filter_by_condition2`,
+  `filter_by_value`, `filter_action_bar`) — the default menu's insert/remove
+  column entries make no sense in a report view.
+- (6) Pinning is declarative rather than a move-then-increment: `pin()` appends
+  the name to `pinned`, and the display order is rebuilt as
+  *selection column → pins in pin order → everything else*, with
+  `fixedColumnsStart` derived from it. Same guarantee the plan asked for —
+  names are stored, positions are re-derived — with no index juggling.
+- (7) `setCustomValues` merges into the map and calls `render()`. Handsontable
+  exposes no public per-row repaint; `render()` keeps sort, filters, scroll
+  position and selection, which was the actual requirement. Asserted in both
+  `grid.test.ts` and `custom-column.spec.ts`.
+- jsdom needs `ResizeObserver` and `IntersectionObserver` stubs
+  (`tests/setup.ts`) before Handsontable will construct at all.
+
 ---
 
 ## Phase 3 — Toolbar
@@ -188,6 +236,11 @@ A small DOM strip above the grid, all optional and driven by config:
 
 No search-engine, no saved views, no export button — the host owns those
 (`getVisibleRows()` gives it the data).
+
+**Built** as listed, in `src/toolbar.ts`. Every control carries a
+`data-role` attribute (`excludeCancelled`, `excludeSuppressed`, `quick-filter`,
+`columns`, `columns-menu`, `clear-selection`, `pending`, `discard`) — that is
+what the Playwright specs drive, and it is a stable hook for hosts too.
 
 ---
 
@@ -216,7 +269,21 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
 4. `src/index.ts` — `customElements.define("ena-browser", …)` (guarded against
    double registration), plus named exports of the classes, sources, and types.
 
-**Check:** `demo/index.html` with fixture rows renders, filters and sorts.
+**Built.** Notes:
+
+- `applyConfig(partial)` is public, and is the single funnel for attributes,
+  the `config` property and `setMode()`. Structural keys (`columns`,
+  `customColumns`, `selectionMode`, `rowActions`, `license`, `height`) rebuild
+  the grid, preserving layout and selection across the rebuild; everything else
+  is a live update.
+- `refresh()` aborts any in-flight fetch before starting the next one.
+- The Reports API base is `https://<host>/ena/submit/report` with
+  `www.ebi.ac.uk` / `wwwdev.ebi.ac.uk`, read out of
+  `ena-api-client/ena_api/config.py` as instructed. The entity path segment for
+  `studies` is ENA's `projects`; the rest match. Rows arrive wrapped as
+  `[{ report: {...} }]` and are unwrapped.
+
+**Check:** `demo/index.html` with fixture rows renders, filters and sorts. ✅
 
 ---
 
@@ -256,6 +323,23 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
    - `lifecycle.spec.ts` — removing the element from the DOM destroys the
      Handsontable instance.
 
+**Built** — 31 specs across the eight files, all passing. Notes:
+
+- `playwright.config.ts` runs the **dev server**, not `vite preview`:
+  `demo/demo.ts` imports `src/` directly, and preview only serves the library
+  build. Port 5174, `ENA_BROWSER_PORT` to override.
+- Fixtures were hand-written from `ena_api/models.py` (`ena-api-client` has no
+  capturable fixtures), and include cancelled, suppressed, accession-less
+  (`secondary_accession` only) and extra-field rows.
+- Two Handsontable behaviours the specs had to be written around, both worth
+  knowing before touching these files:
+  - the master overlay omits the frozen columns, so `edit.spec.ts` finds cells
+    by their current *value*, never by index;
+  - `manualColumnMove` ignores a mousedown that lands on the header's
+    `sortAction` span, and only starts once the column is already selected — so
+    the drag test clicks the header first, then presses in its bottom-right
+    corner.
+
 ---
 
 ## Phase 6 — Standalone viability check + release
@@ -264,10 +348,43 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
    If CORS blocks it, say so plainly in the README (§4 already flags this), keep
    the adapter for same-origin/proxied deployments, and note that the standalone
    app needs a tiny proxy. **Do not silently ship a broken promise.**
+
+   **Result (2026-08-27): CORS does not block it.** Both `www.ebi.ac.uk` and
+   `wwwdev.ebi.ac.uk` answer the `GET` + `Authorization` preflight with
+   `access-control-allow-origin: <requesting origin>` and
+   `access-control-allow-credentials: true`. A backend-free standalone app is
+   therefore viable. **Only the preflight was checked** — an authenticated
+   `GET` needs a real Webin account, so the end-to-end path stays unproven
+   until someone runs `demo/index.html` against their own credentials. README §4
+   records it in exactly those terms.
 2. `docs/INTEGRATION.md` — a copy-pasteable snippet per consumer: the
    assistant's Records tab, the assistant's pairing panel, and an ESM import.
+   **Written**, plus an event table and the theming contract.
 3. Tag `v0.1.0`. Publish `dist/` as a release asset so the assistant can vendor
    it without a Node toolchain (mirrors how the DataHarmonizer bundle arrives).
+   **Not done** — the release is a human decision, and nothing consumes the tag
+   yet.
+
+---
+
+## Known gaps
+
+Everything in README §3 exists except one item:
+
+- **`rowActions` renders nothing.** The config key is accepted, the
+  `RowActionSpec` type exists, and `row-action` fires — but only from
+  `EnaGrid.emitRowAction(action, key)`, which no UI calls. There is no button
+  column. A host wanting release/hold/suppress/cancel buttons today has to draw
+  them itself and call into the grid. Implementing it is a small, self-contained
+  job: one pinned column with a renderer per `RowActionSpec`.
+
+Two smaller notes, deliberate rather than missing:
+
+- The element exposes `setSort()` but not `getSort()`; `EnaGrid` has both, and
+  `filter-change` carries the current sort on every change.
+- `dist/ena-browser.css` carries Handsontable's CSS and the `ht-theme-main`
+  theme as well as the element's own styles, so the IIFE consumer needs one
+  `<link>` and no more. README §2 says so.
 
 ---
 
@@ -278,11 +395,15 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
 | Filter operators, spec round-trip, change diffing, column merge, row keys | Vitest | `npm test`, CI on every push |
 | Element construction/teardown, custom-value map | Vitest + jsdom | same |
 | Rendering, filtering, sorting, pinning, reordering, selection, editing | Playwright vs `demo/` | `npm run test:browser`, CI with `--with-deps` |
-| Live Reports API adapter | manual, Phase 6 | not in CI (needs credentials) |
+| Live Reports API adapter | manual, Phase 6 | not in CI (needs credentials) — CORS preflight verified, authenticated GET not |
 
 CI: one GitHub Actions workflow — `npm ci`, `npm run lint`, `npm test`,
-`npx playwright install --with-deps chromium`, `npm run test:browser`, then
-`npm run build` and upload `dist/` as an artefact.
+`npm run build`, `npx playwright install --with-deps chromium`,
+`npm run test:browser`, with the Playwright report uploaded on failure. The
+`pre-commit` job runs alongside it with the `tsc` hook skipped (it needs real
+`node_modules`, which the `build` job has).
+
+Current counts: **88 Vitest cases**, **31 Playwright specs**.
 
 ---
 

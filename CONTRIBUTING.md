@@ -12,18 +12,24 @@ pip install pre-commit && pre-commit install
 | Command | What it does | Runs on |
 |---|---|---|
 | `pre-commit run --all-files` | whitespace/EOF/YAML/JSON hygiene, secret detection, Prettier, `tsc --noEmit` | commit + CI |
-| `npm run lint` | `tsc --noEmit` | CI |
-| `npm test` | Vitest unit tests | CI |
+| `npm run lint` | `tsc --noEmit` over `src`, `tests`, `demo` | CI |
+| `npm test` | Vitest unit tests (88 cases, jsdom) | CI |
 | `npm run build` | ESM + IIFE + CSS artefacts | CI |
-| `npm run test:browser` | Playwright against `demo/` | CI |
+| `npm run test:browser` | Playwright against `demo/` (31 specs, chromium) | CI |
 
 The `tsc` pre-commit hook needs `npm install` to have run; CI skips it there and
 typechecks in the `build` job instead.
 
+`npm run test:browser` needs a browser once: `npx playwright install chromium`.
+It starts its own Vite dev server on port 5174 (`ENA_BROWSER_PORT` overrides)
+and reuses one that is already running outside CI.
+
 ## Pull requests
 
 - Branch off `main`; no direct pushes to `main`.
-- One phase of [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) per PR where possible.
+- Phases 0–6 of [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) are built; that
+  file records what landed and where it diverged. Keep it truthful when you
+  change something it describes.
 - Both CI jobs (`pre-commit`, `build`) must be green before merge.
 - Squash merge.
 

@@ -3,6 +3,12 @@
 Three copy-pasteable snippets. All of them use the same element; only the
 wiring differs.
 
+No tag has been cut yet, so the vendored/pinned versions below are what the
+first release will look like, not something you can `npm i` today. One caveat
+before you start: **`rowActions` renders no buttons yet** — see
+[Implementation status](../README.md#8-implementation-status) if you need
+release/hold/suppress/cancel controls.
+
 ## 1. The assistant's Records tab (no build step)
 
 Vendor `dist/ena-browser.iife.js` and `dist/ena-browser.css` into
