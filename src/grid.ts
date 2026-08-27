@@ -222,21 +222,12 @@ export class EnaGrid extends EventTarget {
       className: spec?.render === "badge" ? "ena-browser-badge" : undefined,
       renderer:
         spec?.render === "badge"
-          ? (instance, td, row, col, prop, value, cellProperties) => {
-              Handsontable.renderers.BaseRenderer(
-                instance,
-                td,
-                row,
-                col,
-                prop,
-                value,
-                cellProperties,
-              );
-              const shown = value ?? spec.default ?? 0;
-              td.innerHTML = "";
+          ? (_instance, td, _row, _col, _prop, value) => {
+              td.textContent = "";
               const badge = document.createElement("span");
               badge.className = "ena-browser-badge-value";
-              badge.dataset["zero"] = String(!shown || shown === 0);
+              const shown = value ?? spec.default ?? 0;
+              badge.dataset["zero"] = String(!shown);
               badge.textContent = String(shown);
               td.appendChild(badge);
             }
@@ -255,7 +246,15 @@ export class EnaGrid extends EventTarget {
       colHeaders: columns.map((c) => String(c.title ?? "")),
       rowHeaders: false,
       filters: true,
-      dropdownMenu: true,
+      // The filter UI only — the default menu's insert/remove column items
+      // make no sense for a report view.
+      dropdownMenu: [
+        "filter_by_condition",
+        "filter_operators",
+        "filter_by_condition2",
+        "filter_by_value",
+        "filter_action_bar",
+      ],
       multiColumnSorting: true,
       manualColumnMove: true,
       manualColumnResize: true,

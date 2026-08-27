@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "@types/node": "^26.4.0",
     "handsontable": "^17.1.0",
     "jsdom": "^25.0.0",
     "prettier": "^3.9.6",

@@ -1,0 +1,49 @@
+[
+  {
+    "accession": "ERS4000001",
+    "secondary_accession": "SAMEA4000001",
+    "alias": "mimicc-sample-A",
+    "title": "Gut metagenome, donor A",
+    "status": "PRIVATE",
+    "tax_id": "408170",
+    "scientific_name": "human gut metagenome",
+    "collection_date": "2025-01-14"
+  },
+  {
+    "accession": "ERS4000002",
+    "secondary_accession": "SAMEA4000002",
+    "alias": "mimicc-sample-B",
+    "title": "Gut metagenome, donor B",
+    "status": "PUBLIC",
+    "tax_id": "408170",
+    "scientific_name": "human gut metagenome",
+    "collection_date": "2025-01-15"
+  },
+  {
+    "accession": "",
+    "secondary_accession": "SAMEA4000003",
+    "alias": "mimicc-sample-C",
+    "title": "Soil metagenome, plot 3",
+    "status": "PRIVATE",
+    "tax_id": "410658",
+    "scientific_name": "soil metagenome",
+    "collection_date": "2025-02-02",
+    "geographic_location_country": "United Kingdom"
+  },
+  {
+    "accession": "ERS4000004",
+    "secondary_accession": "SAMEA4000004",
+    "alias": "mimicc-sample-D",
+    "title": "Cancelled sample",
+    "status": "CANCELLED",
+    "tax_id": "408170"
+  },
+  {
+    "accession": "ERS4000005",
+    "secondary_accession": "SAMEA4000005",
+    "alias": "mimicc-sample-E",
+    "title": "Suppressed sample",
+    "status": "SUPPRESSED",
+    "tax_id": "410658"
+  }
+]

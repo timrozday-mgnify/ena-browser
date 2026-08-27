@@ -1,0 +1,29 @@
+[
+  {
+    "accession": "ERX3000001",
+    "alias": "mimicc-exp-A",
+    "title": "Shotgun metagenomics of donor A",
+    "study_accession": "PRJEB10001",
+    "sample_accession": "ERS4000001",
+    "status": "PRIVATE",
+    "library_strategy": "WGS"
+  },
+  {
+    "accession": "ERX3000002",
+    "alias": "mimicc-exp-B",
+    "title": "Long-read metagenomics of donor B",
+    "study_accession": "PRJEB10001",
+    "sample_accession": "ERS4000002",
+    "status": "PUBLIC",
+    "library_strategy": "WGS"
+  },
+  {
+    "accession": "ERX3000003",
+    "alias": "mimicc-exp-C",
+    "title": "Cancelled experiment",
+    "study_accession": "PRJEB10001",
+    "sample_accession": "ERS4000004",
+    "status": "CANCELLED",
+    "library_strategy": "AMPLICON"
+  }
+]
