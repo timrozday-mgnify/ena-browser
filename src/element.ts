@@ -8,6 +8,7 @@
 import { EnaGrid } from "./grid.js";
 import { EnaToolbar } from "./toolbar.js";
 import type {
+  BrowserState,
   ChangeSet,
   EnaBrowserConfig,
   Entity,
@@ -115,12 +116,10 @@ export class EnaBrowserElement extends HTMLElement {
 
   private rebuild(): void {
     if (!this.mounted) return;
-    const layout = this.grid?.getLayout();
-    const selection = this.grid?.getSelection() ?? [];
+    const state = this.grid?.getState();
     this.teardown();
     this.build();
-    if (layout) this.grid?.setLayout(layout);
-    if (selection.length) this.grid?.setSelection(selection);
+    if (state) this.grid?.setState(state);
   }
 
   // ------------------------------------------------------------------ config
@@ -243,6 +242,31 @@ export class EnaBrowserElement extends HTMLElement {
 
   setLayout(layout: Layout): void {
     this.grid?.setLayout(layout);
+  }
+
+  /**
+   * One snapshot of everything the user can change (edits, layout, filters,
+   * sort, selection) — the unit a host's undo/redo stack stores.
+   */
+  getState(): BrowserState {
+    return (
+      this.grid?.getState() ?? {
+        edits: [],
+        layout: {},
+        filters: [],
+        sort: [],
+        selection: [],
+      }
+    );
+  }
+
+  /**
+   * Restore a snapshot taken with `getState()`. Every event fired while
+   * restoring carries `source: "api"`; push on `"user"` only, or the stack
+   * records its own replays.
+   */
+  setState(state: Partial<BrowserState>): void {
+    this.grid?.setState(state);
   }
 
   getVisibleRows(): Row[] {

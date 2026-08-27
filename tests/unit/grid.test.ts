@@ -208,7 +208,7 @@ describe("row actions", () => {
     expect(buttons[1]?.title).toBe("Cancel this record");
 
     buttons[0]?.click();
-    expect(seen).toEqual([{ action: "release", key: "ERS1", row: rows[0] }]);
+    expect(seen).toEqual([{ action: "release", key: "ERS1", row: rows[0], source: "user" }]);
   });
 
   it("keys buttons by the row key, accession or not", () => {

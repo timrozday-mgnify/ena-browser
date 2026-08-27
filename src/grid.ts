@@ -21,6 +21,7 @@ import {
   toHandsontableCondition,
 } from "./filters.js";
 import type {
+  BrowserState,
   ChangeSet,
   ColumnSpec,
   CustomColumnSpec,
@@ -30,6 +31,7 @@ import type {
   Layout,
   Row,
   RowActionSpec,
+  RowChange,
   SortSpec,
 } from "./types.js";
 
@@ -58,6 +60,8 @@ export class EnaGrid extends EventTarget {
   /** Column names in the order Handsontable currently holds them. */
   private active: string[] = [];
   private rebuilding = false;
+  /** True while `setState()` runs, so events say `source: "api"`. */
+  private applying = false;
 
   private userFilters: FilterSpec[] = [];
   private statusSpec: FilterSpec | null = null;
@@ -116,8 +120,9 @@ export class EnaGrid extends EventTarget {
     return this.hot?.getSourceDataAtRow(physical) as Row | undefined;
   }
 
-  private emit<T>(name: string, detail: T): void {
-    this.dispatchEvent(new CustomEvent(name, { detail }));
+  private emit<T extends object>(name: string, detail: T): void {
+    const source = this.applying ? "api" : "user";
+    this.dispatchEvent(new CustomEvent(name, { detail: { ...detail, source } }));
   }
 
   // ------------------------------------------------------------------ columns
@@ -449,6 +454,10 @@ export class EnaGrid extends EventTarget {
 
   getRows(): Row[] {
     return [...this.rows];
+  }
+
+  private rowFor(key: string): Row | undefined {
+    return this.rows.find((candidate) => rowKey(this.config.entity, candidate) === key);
   }
 
   setEntity(entity: Entity): void {
@@ -815,23 +824,71 @@ export class EnaGrid extends EventTarget {
     this.hot?.render();
   }
 
-  /** Restore every edited cell to its pre-edit value and forget the changes. */
-  discardChanges(): void {
+  /**
+   * Replace the pending edits wholesale: rewind every currently-edited cell
+   * to its original value, then replay `changes`. Idempotent, so a host's
+   * undo/redo stack can hand back any earlier `ChangeSet` and get exactly
+   * that state — no per-cell replay, no drift.
+   */
+  setEdits(changes: RowChange[]): void {
+    this.rewindEdits();
+    const applicable = changes.filter((change) => this.rowFor(change.key) !== undefined);
+    for (const change of applicable) {
+      const row = this.rowFor(change.key) as Row;
+      for (const column of change.changed) row[column] = change.after[column];
+    }
+    this.tracker.restore(applicable);
+    this.hot?.render();
+    this.emit("change", { changes: this.getChangeSet() });
+  }
+
+  private rewindEdits(): void {
     for (const change of this.tracker.get().rows) {
-      const row = this.rows.find(
-        (candidate) => rowKey(this.config.entity, candidate) === change.key,
-      );
+      const row = this.rowFor(change.key);
       const before = this.original.get(change.key);
       if (!row || !before) continue;
       for (const column of change.changed) row[column] = before[column];
     }
+  }
+
+  /** One JSON-safe snapshot of everything the user can change. */
+  getState(): BrowserState {
+    return {
+      edits: this.getChangeSet().rows,
+      layout: this.getLayout(),
+      filters: this.getFilters(),
+      sort: this.getSort(),
+      selection: this.getSelection(),
+    };
+  }
+
+  /**
+   * Restore a snapshot. Events fired while restoring carry `source: "api"` so
+   * a host stack can ignore them instead of pushing what it just replayed.
+   */
+  setState(state: Partial<BrowserState>): void {
+    this.applying = true;
+    try {
+      if (state.layout) this.setLayout(state.layout);
+      if (state.filters) this.setFilters(state.filters);
+      if (state.sort) this.setSort(state.sort);
+      if (state.edits) this.setEdits(state.edits);
+      if (state.selection) this.setSelection(state.selection);
+    } finally {
+      this.applying = false;
+    }
+  }
+
+  /** Restore every edited cell to its pre-edit value and forget the changes. */
+  discardChanges(): void {
+    this.rewindEdits();
     this.tracker.clear();
     this.hot?.render();
     this.emit("change", { changes: this.getChangeSet() });
   }
 
   emitRowAction(action: string, key: string): void {
-    const row = this.rows.find((candidate) => rowKey(this.config.entity, candidate) === key);
+    const row = this.rowFor(key);
     if (row) this.emit("row-action", { action, key, row });
   }
 }

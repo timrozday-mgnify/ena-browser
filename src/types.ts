@@ -100,6 +100,28 @@ export interface ChangeSet {
   rows: RowChange[];
 }
 
+/**
+ * Who caused an event: a user gesture, or the host calling `setState()`.
+ *
+ * A host with an undo/redo stack pushes on `"user"` and ignores `"api"`,
+ * otherwise replaying a state would push the state it just replayed.
+ */
+export type EventSource = "user" | "api";
+
+/**
+ * Everything the element owns that a user can change — one snapshot, JSON
+ * safe, restorable with `setState()`. Rows themselves are *not* in here: the
+ * host owns those and passes them with `setRows()`.
+ */
+export interface BrowserState {
+  /** Pending cell edits (the `ChangeSet` rows). */
+  edits: RowChange[];
+  layout: Layout;
+  filters: FilterSpec[];
+  sort: SortSpec[];
+  selection: string[];
+}
+
 export interface DataSource {
   fetch(opts: { entity: Entity; signal: AbortSignal }): Promise<Row[]>;
 }
@@ -125,15 +147,21 @@ export interface EnaBrowserConfig {
 
 /** `detail` payloads of the `ena-browser:*` CustomEvents. */
 export interface EnaBrowserEventMap {
-  ready: Record<string, never>;
-  "selection-change": { keys: string[]; rows: Row[]; lastKey: string | null };
-  change: { changes: ChangeSet };
-  "row-action": { action: string; key: string; row: Row };
+  ready: { source: EventSource };
+  "selection-change": {
+    keys: string[];
+    rows: Row[];
+    lastKey: string | null;
+    source: EventSource;
+  };
+  change: { changes: ChangeSet; source: EventSource };
+  "row-action": { action: string; key: string; row: Row; source: EventSource };
   "filter-change": {
     filters: FilterSpec[];
     sort: SortSpec[];
     visibleCount: number;
+    source: EventSource;
   };
-  "layout-change": { layout: Layout };
+  "layout-change": { layout: Layout; source: EventSource };
   error: { message: string };
 }

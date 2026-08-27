@@ -46,7 +46,9 @@ pass.
 
 - No submission, no XML, no manifest building, no credential storage.
 - No persistence. The element has no idea what IndexedDB is; it exposes
-  `getLayout()` / `setLayout()` and the host persists the blob.
+  `getState()` / `setState()` (and the narrower `getLayout()` / `setLayout()`)
+  and the host persists the blob — that same pair is what a host undo/redo
+  stack drives.
 - No polling/refresh loop. The host decides when to call `setRows()`.
 - No routing, no tabs, no app chrome.
 
@@ -105,6 +107,7 @@ interface EnaBrowserConfig {
 | `setFilters(specs)` / `getFilters()` / `setSort(specs)` | Programmatic filter/sort control; mirrors what the UI writes. |
 | `getLayout()` / `setLayout(layout)` | Column order, pins, hidden columns, widths — for the host to persist. |
 | `getVisibleRows()` | The rows currently passing the filters, in display order (for "export what I see"). |
+| `getState(): BrowserState` / `setState(state)` | One JSON-safe snapshot of everything the user can change — `{ edits, layout, filters, sort, selection }`. The unit a host's undo/redo stack stores; `setState()` is idempotent and stamps every event it causes with `source: "api"`. See [docs/INTEGRATION.md](docs/INTEGRATION.md#undoredo). |
 
 ### Events
 
@@ -112,12 +115,12 @@ All are `CustomEvent`s on the element, prefixed `ena-browser:`.
 
 | Event | `detail` | Fired when |
 |---|---|---|
-| `ready` | `{}` | Grid mounted. |
-| `selection-change` | `{ keys, rows, lastKey }` | A row is selected/deselected. **This is the pairing hook** — the host records `lastKey` and waits for the next click in the reads element. |
-| `change` | `{ changes: ChangeSet }` | An edit was committed (edit mode only). |
-| `row-action` | `{ action, key, row }` | A `rowActions` button was clicked. The element does nothing else — the host performs release/hold/suppress/cancel. |
-| `filter-change` | `{ filters, sort, visibleCount }` | Filters or sort changed. |
-| `layout-change` | `{ layout }` | Columns pinned, moved, hidden or resized. |
+| `ready` | `{ source }` | Grid mounted. |
+| `selection-change` | `{ keys, rows, lastKey, source }` | A row is selected/deselected. **This is the pairing hook** — the host records `lastKey` and waits for the next click in the reads element. |
+| `change` | `{ changes: ChangeSet, source }` | An edit was committed (edit mode only). |
+| `row-action` | `{ action, key, row, source }` | A `rowActions` button was clicked. The element does nothing else — the host performs release/hold/suppress/cancel. |
+| `filter-change` | `{ filters, sort, visibleCount, source }` | Filters or sort changed. |
+| `layout-change` | `{ layout, source }` | Columns pinned, moved, hidden or resized. |
 | `error` | `{ message }` | A configured `source` fetch failed. |
 
 ### Filter spec

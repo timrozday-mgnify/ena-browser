@@ -73,6 +73,21 @@ export class ChangeTracker {
     return { rows };
   }
 
+  /**
+   * Replace the whole pending set — how a host's undo/redo stack rewinds to
+   * an earlier `ChangeSet` without replaying the edits cell by cell.
+   */
+  restore(rows: RowChange[]): void {
+    this.rows.clear();
+    for (const change of rows) {
+      this.rows.set(change.key, {
+        accession: change.accession,
+        before: { ...change.before },
+        after: { ...change.after },
+      });
+    }
+  }
+
   clear(): void {
     this.rows.clear();
   }
