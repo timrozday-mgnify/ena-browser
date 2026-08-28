@@ -67,6 +67,12 @@ export function titleFor(name: string): string {
  * Entity defaults, then config overrides, then any extra keys present in the
  * data (Reports rows carry `extra="allow"` fields — dropping them silently is
  * the bug this exists to prevent), then custom columns last.
+ *
+ * A data-derived extra starts hidden: the entity's `DEFAULT_COLUMNS` are what
+ * a fresh grid shows, and everything else the API happened to send is there in
+ * the columns menu to be ticked on. Entities with no defaults (`files`, whose
+ * shape is entirely data-derived) are exempt — hiding every column would leave
+ * an empty grid.
  */
 export function mergeColumns(
   entity: Entity,
@@ -80,11 +86,12 @@ export function mergeColumns(
     merged.set(spec.name, existing ? { ...existing, ...spec } : spec);
   };
 
-  for (const name of DEFAULT_COLUMNS[entity]) add({ name });
+  const defaults = DEFAULT_COLUMNS[entity];
+  for (const name of defaults) add({ name });
   for (const spec of configColumns) add(spec);
   for (const row of rows) {
     for (const name of Object.keys(row)) {
-      if (!merged.has(name)) add({ name, type: "text" });
+      if (!merged.has(name)) add({ name, type: "text", hidden: defaults.length > 0 });
     }
   }
   for (const spec of customColumns) {
@@ -93,6 +100,9 @@ export function mergeColumns(
       title: spec.title,
       type: spec.type ?? "text",
       readOnly: spec.readOnly ?? true,
+      // A custom column is the host's point of adding it, never a hidden extra
+      // — even when a report row happens to carry the same field name.
+      hidden: false,
     });
   }
 
