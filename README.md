@@ -108,7 +108,7 @@ interface EnaBrowserConfig {
 | `theme` / `resolvedTheme`                                              | Properties, not methods. `theme` is `"auto"` (default) \| `"light"` \| `"dark"`, also settable as the `theme` attribute; `resolvedTheme` reads back the concrete one. See [Theming](#5-theming).                                                                                                         |
 | `getChangeSet(): ChangeSet`                                            | `{ rows: [{ key, accession, before, after, changed: string[] }] }` — everything the host needs to build a MODIFY manifest.                                                                                                                                                                               |
 | `clearChanges()`                                                       | Call after the host has successfully submitted.                                                                                                                                                                                                                                                          |
-| `addColumn(spec \| name)` / `removeColumn(name)`                       | Add an **editable field that is not in the report** (a sample attribute the user wants to set) and delete it again. Its values are ordinary edits, so they arrive in `getChangeSet()`; only columns added this way can be removed. The toolbar's Columns menu drives the same two methods.               |
+| `addColumn(spec \| name)` / `removeColumn(name)`                       | Add an **editable field that is not in the report** (a sample attribute the user wants to set) and delete it again. Its values are ordinary edits, so they arrive in `getChangeSet()`. `removeColumn()` also takes a report column: that clears the field in every row, as an edit ENA may refuse. The toolbar's Columns menu drives the same two methods.               |
 | `getExcluded(): string[]` / `setExcluded(keys)`                        | Row keys unticked in the include column — their edits are dropped from `getChangeSet()` but kept in `getState()`.                                                                                                                                                                                        |
 | `getSelection(): string[]` / `setSelection(keys)` / `clearSelection()` | Row keys (accessions), in click order.                                                                                                                                                                                                                                                                   |
 | `setCustomValues(column, map)`                                         | Update a dynamic column, e.g. `setCustomValues("reads_assigned", {ERS1: 2})` — a plain object or a `Map`, merged into what is already there. Cheap: patches cells in place, never re-sorts or loses selection.                                                                                           |
@@ -205,9 +205,13 @@ browser.removeColumn("collection_date"); // values and pending edits with it
 
 Added columns are editable data columns: typing in one records an edit like any
 other, so the field lands in `getChangeSet()` and hence in the host's MODIFY
-manifest. Only these can be deleted — report columns hide, they do not delete.
-Both are also in the toolbar's **Columns** menu (a `Delete` button per added
-column, and a name box + `Add column` at the foot).
+manifest. `removeColumn()` takes any column: an added one goes with its values
+and edits, while a report field is *cleared* in every row — the empty value
+lands in `getChangeSet()` and it is ENA's job to accept or refuse it.
+`discardChanges()` brings such a column back. To simply stop looking at a
+column, untick it instead. Both are in the toolbar's **Columns** menu (a drag
+handle, visibility checkbox, and pin 📌 / delete 🗑 icons per column, plus a
+name box + `Add column` at the foot); deleting a report column asks first.
 
 In **edit mode** the grid draws one more control column, a ✓ checkbox per row,
 ticked by default: untick a row to keep its edits out of `getChangeSet()`

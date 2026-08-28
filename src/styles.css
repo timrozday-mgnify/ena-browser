@@ -162,8 +162,28 @@
   white-space: nowrap;
 }
 
-.ena-browser-columns-menu button {
+/* The icon buttons ride together at the right-hand end of the row. */
+.ena-browser-columns-menu button:first-of-type {
   margin-left: auto;
+}
+
+.ena-browser-columns-menu .ena-browser-icon-button {
+  padding: 1px 4px;
+  line-height: 1;
+  font-size: 13px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.ena-browser-columns-menu .ena-browser-icon-button:hover {
+  border-color: var(--eb-line);
+}
+
+.ena-browser-columns-menu .ena-browser-icon-button[data-pinned="false"] {
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 
 /* Grid */
@@ -226,4 +246,14 @@
 
 .ena-browser-columns-menu .ena-browser-add-column input {
   width: 8rem;
+}
+
+.ena-browser-columns-menu .ena-browser-drag-handle {
+  cursor: grab;
+  color: var(--eb-muted);
+  user-select: none;
+}
+
+.ena-browser-columns-menu [data-dragging] {
+  opacity: 0.5;
 }

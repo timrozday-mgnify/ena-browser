@@ -151,6 +151,11 @@ export class EnaToolbar {
 
     for (const column of this.grid.listColumns()) {
       const row = document.createElement("div");
+      row.dataset["role"] = "column-row";
+      row.dataset["column"] = column.name;
+      row.appendChild(this.dragHandle(menu, row, anchor));
+      this.wireDropTarget(menu, row);
+
       const visible = document.createElement("input");
       visible.type = "checkbox";
       visible.checked = !this.grid.isHidden(column.name);
@@ -167,7 +172,12 @@ export class EnaToolbar {
       const pin = document.createElement("button");
       pin.type = "button";
       const pinned = this.grid.isPinned(column.name);
-      pin.textContent = pinned ? "Unpin" : "Pin";
+      pin.className = "ena-browser-icon-button";
+      pin.textContent = "\u{1F4CC}";
+      pin.ariaLabel = pinned ? "Unpin" : "Pin";
+      pin.title = pin.ariaLabel;
+      // Pinned reads as a pressed toggle, not a second glyph.
+      pin.dataset["pinned"] = String(pinned);
       pin.addEventListener("click", () => {
         if (pinned) this.grid.unpin(column.name);
         else this.grid.pin(column.name);
@@ -175,19 +185,28 @@ export class EnaToolbar {
       });
       row.appendChild(pin);
 
-      // Only columns the user added: hiding is what you want for report fields.
-      if (column.custom) {
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.textContent = "Delete";
-        remove.dataset["role"] = "delete-column";
-        remove.dataset["column"] = column.name;
-        remove.addEventListener("click", () => {
-          this.grid.removeColumn(column.name);
-          this.reopenColumnsMenu(anchor);
-        });
-        row.appendChild(remove);
-      }
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "ena-browser-icon-button";
+      remove.textContent = "\u{1F5D1}";
+      remove.ariaLabel = "Delete";
+      remove.title = "Delete";
+      remove.dataset["role"] = "delete-column";
+      remove.dataset["column"] = column.name;
+      remove.addEventListener("click", () => {
+        // A report field is data in ENA: deleting it clears it in every row,
+        // so ask first. Untick the checkbox to merely stop looking at it.
+        const label = column.title ?? column.name;
+        if (
+          !column.custom &&
+          !confirm(`Delete "${label}" from every row? The change is submitted to ENA.`)
+        ) {
+          return;
+        }
+        this.grid.removeColumn(column.name);
+        this.reopenColumnsMenu(anchor);
+      });
+      row.appendChild(remove);
       menu.appendChild(row);
     }
 
@@ -198,6 +217,42 @@ export class EnaToolbar {
     menu.style.top = `${rect.bottom + window.scrollY + 2}px`;
     document.body.appendChild(menu);
     this.columnsMenu = menu;
+  }
+
+  /** Grab handle: drags its row to a new position in the menu. */
+  private dragHandle(menu: HTMLDivElement, row: HTMLDivElement, anchor: HTMLElement): HTMLSpanElement {
+    const handle = document.createElement("span");
+    handle.className = "ena-browser-drag-handle";
+    handle.textContent = "\u2237";
+    handle.title = "Drag to reorder";
+    handle.draggable = true;
+    handle.addEventListener("dragstart", (event) => {
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+      row.dataset["dragging"] = "";
+    });
+    // Commit on dragend, not drop: a release outside a row still leaves the
+    // rows in their new order.
+    handle.addEventListener("dragend", () => {
+      delete row.dataset["dragging"];
+      const names = [...menu.querySelectorAll<HTMLElement>('[data-role="column-row"]')].map(
+        (element) => element.dataset["column"] ?? "",
+      );
+      this.grid.setColumnOrder(names);
+      this.reopenColumnsMenu(anchor);
+    });
+    return handle;
+  }
+
+  /** Rows shuffle under the cursor as a drag passes over them. */
+  private wireDropTarget(menu: HTMLDivElement, row: HTMLDivElement): void {
+    row.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      const dragging = menu.querySelector<HTMLElement>("[data-dragging]");
+      if (!dragging || dragging === row) return;
+      const middle = row.getBoundingClientRect().top + row.offsetHeight / 2;
+      menu.insertBefore(dragging, event.clientY < middle ? row : row.nextSibling);
+    });
+    row.addEventListener("drop", (event) => event.preventDefault());
   }
 
   /** New-column name + Add, at the foot of the columns menu. */

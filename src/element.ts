@@ -103,7 +103,9 @@ export class EnaBrowserElement extends HTMLElement {
     // scroll. So the host is in the document before the grid is built.
     this.applyTheme();
     this.appendChild(gridHost);
-    this.grid = new EnaGrid(gridHost, this._config);
+    // `applyTheme()` above resolved `auto`; a fresh grid has to be told, since
+    // a rebuild finds no grid to call `setTheme()` on.
+    this.grid = new EnaGrid(gridHost, { ...this._config, theme: this.resolvedTheme });
     for (const name of FORWARDED) {
       this.grid.addEventListener(name, (event) => {
         this.dispatchEvent(

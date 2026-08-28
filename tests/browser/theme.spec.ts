@@ -63,3 +63,17 @@ test("a theme the page isn't using drops the host's colours", async ({ page }) =
   await page.selectOption("#theme", "auto");
   await expect(page.locator("#browser")).not.toHaveAttribute("data-theme-detached", "");
 });
+
+test("the theme survives a structural rebuild", async ({ page }) => {
+  await openDemo(page);
+  await page.selectOption("#page-theme", "dark");
+  await expect.poll(async () => (await themes(page)).resolved).toBe("dark");
+
+  // A structural change throws the grid away and builds a new one.
+  await page.evaluate(() => {
+    (document.getElementById("browser") as HTMLElement & {
+      applyConfig(partial: Record<string, unknown>): void;
+    }).applyConfig({ rowActions: [{ action: "poke", label: "Poke" }] });
+  });
+  expect(await themes(page)).toMatchObject({ resolved: "dark", dark: true, light: false });
+});

@@ -73,10 +73,23 @@ describe("user-added columns", () => {
     expect(grid.getConfig().editableColumns).not.toContain("host");
   });
 
-  it("refuses to delete a report column", () => {
+  it("deleting a report column clears it in every row, for ENA to accept or refuse", () => {
     const grid = makeGrid();
     grid.removeColumn("title");
+
+    expect(grid.listColumns().some((c) => c.name === "title")).toBe(false);
+    const changed = grid.getChangeSet().rows;
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed[0]?.after).toEqual({ title: "" });
+  });
+
+  it("discarding the changes brings a deleted report column back", () => {
+    const grid = makeGrid();
+    grid.removeColumn("title");
+    grid.discardChanges();
+
     expect(grid.listColumns().some((c) => c.name === "title")).toBe(true);
+    expect(grid.getChangeSet().rows).toEqual([]);
   });
 });
 

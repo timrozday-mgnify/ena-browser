@@ -63,6 +63,9 @@ export class EnaGrid extends EventTarget {
   private order: string[] = [];
   private pinned: string[] = [];
   private hidden: string[] = [];
+  // Columns deleted from the grid. Report fields land here with a pending
+  // "clear this field" edit; discarding the changes brings them back.
+  private deleted: string[] = [];
   private widths: Record<string, number> = {};
   /** Column names in the order Handsontable currently holds them. */
   private active: string[] = [];
@@ -162,7 +165,7 @@ export class EnaGrid extends EventTarget {
       this.rows,
       this.config.columns ?? [],
       this.customSpecs,
-    );
+    ).filter((spec) => !this.deleted.includes(spec.name));
     const names = this.columns.map((c) => c.name);
     // Keep any remembered order, drop names that no longer exist, append new.
     this.order = [
@@ -358,15 +361,31 @@ export class EnaGrid extends EventTarget {
     this.emit("column-change", { columns: this.listColumns(), added: name });
   }
 
-  /** Delete a column added with `addColumn()`, its values and its edits. */
+  /**
+   * Delete a column. A column added with `addColumn()` never reached ENA, so
+   * it goes with its values and its edits. A report field is a field of the
+   * record: deleting it clears it in every row, which reaches the change set
+   * (and the host's MODIFY manifest) like any other edit — whether ENA allows
+   * the field to be cleared is ENA's answer to give.
+   */
   removeColumn(name: string): void {
-    if (!this.specFor(name)?.custom) return;
-    this.config.columns = (this.config.columns ?? []).filter((spec) => spec.name !== name);
-    this.config.editableColumns = (this.config.editableColumns ?? []).filter((n) => n !== name);
-    this.tracker.dropColumn(name);
-    // Also out of the data, or mergeColumns() re-derives it from the rows.
-    for (const row of this.rows) delete row[name];
-    for (const row of this.original.values()) delete row[name];
+    const spec = this.specFor(name);
+    if (!spec || isControlColumn(name)) return;
+    if (spec.custom) {
+      this.config.columns = (this.config.columns ?? []).filter((s) => s.name !== name);
+      this.config.editableColumns = (this.config.editableColumns ?? []).filter((n) => n !== name);
+      this.tracker.dropColumn(name);
+      // Also out of the data, or mergeColumns() re-derives it from the rows.
+      for (const row of this.rows) delete row[name];
+      for (const row of this.original.values()) delete row[name];
+    } else {
+      for (const row of this.rows) {
+        const key = rowKey(this.config.entity, row);
+        const accession = typeof row["accession"] === "string" ? row["accession"] : key;
+        this.tracker.record(key, name, row[name], "", accession);
+      }
+    }
+    this.deleted.push(name);
     this.order = this.order.filter((n) => n !== name);
     this.pinned = this.pinned.filter((n) => n !== name);
     this.hidden = this.hidden.filter((n) => n !== name);
@@ -777,6 +796,17 @@ export class EnaGrid extends EventTarget {
       .filter((spec): spec is ColumnSpec => spec !== undefined);
   }
 
+  /**
+   * Reorder the data columns to `names` — what the toolbar's Columns menu
+   * hands back after a drag. Same semantics as dragging a header.
+   */
+  setColumnOrder(names: string[]): void {
+    const moved = names.filter((name) => !isControlColumn(name) && this.specFor(name));
+    if (moved.length !== this.order.length) return;
+    this.applyColumnOrder(moved);
+    this.rebuild();
+  }
+
   private onColumnMove(): void {
     if (!this.hot || this.rebuilding) return;
     const count = this.hot.countCols();
@@ -785,6 +815,10 @@ export class EnaGrid extends EventTarget {
       const name = this.active[this.hot.toPhysicalColumn(visual)];
       if (name && !isControlColumn(name)) moved.push(name);
     }
+    this.applyColumnOrder(moved);
+  }
+
+  private applyColumnOrder(moved: string[]): void {
     // Pins keep their leading positions; anything dragged out of the pinned
     // block stops being pinned.
     const pinCount = this.pinned.length;
@@ -994,7 +1028,10 @@ export class EnaGrid extends EventTarget {
   discardChanges(): void {
     this.rewindEdits();
     this.tracker.clear();
-    this.hot?.render();
+    // Deleting a report field was one of those edits, so the column comes back.
+    this.deleted = [];
+    this.rebuildColumns();
+    this.rebuild();
     this.emit("change", { changes: this.getChangeSet() });
   }
 
