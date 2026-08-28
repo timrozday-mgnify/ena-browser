@@ -158,6 +158,22 @@ describe("layout", () => {
     expect(fresh.isHidden("alias")).toBe(true);
   });
 
+  it("hides a data-derived extra once, then leaves the user's choice alone", () => {
+    const withExtra = rows.map((row) => ({ ...row, tax_id: 9606 }));
+    const grid = makeGrid({ rows: withExtra });
+    expect(grid.isHidden("tax_id")).toBe(true);
+
+    grid.showColumn("tax_id");
+    grid.setRows(withExtra); // a reload must not re-apply the default
+    expect(grid.isHidden("tax_id")).toBe(false);
+
+    // ...and neither must restoring the layout that reload produced.
+    const fresh = makeGrid({ rows: withExtra });
+    fresh.setLayout(grid.getLayout());
+    fresh.setRows(withExtra);
+    expect(fresh.isHidden("tax_id")).toBe(false);
+  });
+
   it("unpins and shows again", () => {
     const grid = makeGrid();
     grid.pin("title");

@@ -71,9 +71,11 @@ test("the theme survives a structural rebuild", async ({ page }) => {
 
   // A structural change throws the grid away and builds a new one.
   await page.evaluate(() => {
-    (document.getElementById("browser") as HTMLElement & {
-      applyConfig(partial: Record<string, unknown>): void;
-    }).applyConfig({ rowActions: [{ action: "poke", label: "Poke" }] });
+    (
+      document.getElementById("browser") as HTMLElement & {
+        applyConfig(partial: Record<string, unknown>): void;
+      }
+    ).applyConfig({ rowActions: [{ action: "poke", label: "Poke" }] });
   });
   expect(await themes(page)).toMatchObject({ resolved: "dark", dark: true, light: false });
 });
