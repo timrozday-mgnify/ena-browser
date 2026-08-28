@@ -220,7 +220,11 @@ export class EnaToolbar {
   }
 
   /** Grab handle: drags its row to a new position in the menu. */
-  private dragHandle(menu: HTMLDivElement, row: HTMLDivElement, anchor: HTMLElement): HTMLSpanElement {
+  private dragHandle(
+    menu: HTMLDivElement,
+    row: HTMLDivElement,
+    anchor: HTMLElement,
+  ): HTMLSpanElement {
     const handle = document.createElement("span");
     handle.className = "ena-browser-drag-handle";
     handle.textContent = "\u2237";

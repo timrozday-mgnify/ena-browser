@@ -42,6 +42,19 @@ describe("mergeColumns", () => {
     expect(names).toContain("tax_id");
   });
 
+  it("hides data-derived extras but not the entity defaults", () => {
+    const columns = mergeColumns("samples", [{ accession: "ERS1", tax_id: 9606 }], [], []);
+    const hidden = (name: string): boolean | undefined =>
+      columns.find((c) => c.name === name)?.hidden;
+    expect(hidden("tax_id")).toBe(true);
+    expect(hidden("accession")).toBeFalsy();
+  });
+
+  it("hides nothing for files, whose columns are all data-derived", () => {
+    const columns = mergeColumns("files", [{ run_accession: "ERR1" }], [], []);
+    expect(columns.every((c) => !c.hidden)).toBe(true);
+  });
+
   it("derives every column from the data for files", () => {
     const names = mergeColumns(
       "files",

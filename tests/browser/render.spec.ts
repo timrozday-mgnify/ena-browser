@@ -29,10 +29,23 @@ for (const [entity, expected] of Object.entries(EXPECTED)) {
   });
 }
 
-test("extra fields present in the data become columns", async ({ page }) => {
+test("extra fields present in the data become columns, hidden until asked for", async ({
+  page,
+}) => {
   await openDemo(page, { entity: "samples" });
-  // `tax_id` is not in the default sample column set — it comes from the rows.
-  expect(await headers(page)).toContain("Tax id");
+  // `tax_id` is not in the default sample column set — it comes from the rows,
+  // so it starts hidden rather than crowding out the columns that identify a
+  // record. Dropping it would be the bug; the columns menu is where it lives.
+  expect(await headers(page)).not.toContain("Tax id");
+
+  await page.locator('[data-role="columns"]').click();
+  const taxId = page
+    .locator('[data-role="columns-menu"] [data-role="column-row"]')
+    .filter({ hasText: "Tax id" })
+    .first();
+  await expect(taxId).toBeVisible();
+  await taxId.locator("input[type=checkbox]").check();
+  await expect.poll(() => headers(page)).toContain("Tax id");
 });
 
 test("the custom Reads column is pinned first", async ({ page }) => {

@@ -63,6 +63,11 @@ export class EnaGrid extends EventTarget {
   private order: string[] = [];
   private pinned: string[] = [];
   private hidden: string[] = [];
+  /** Columns whose `hidden` default has already been applied once. A column
+   *  the user ticked on must not snap back hidden on the next rebuild, and a
+   *  saved layout's `order` names every column the last session knew about —
+   *  so anything absent from it is genuinely new and gets the default. */
+  private defaulted = new Set<string>();
   // Columns deleted from the grid. Report fields land here with a pending
   // "clear this field" edit; discarding the changes brings them back.
   private deleted: string[] = [];
@@ -180,8 +185,11 @@ export class EnaGrid extends EventTarget {
     this.pinned = this.pinned.filter((n) => names.includes(n));
     this.hidden = this.hidden.filter((n) => names.includes(n));
     for (const spec of this.columns) {
-      if (spec.hidden && !this.hidden.includes(spec.name)) {
-        this.hidden.push(spec.name);
+      if (!this.defaulted.has(spec.name)) {
+        this.defaulted.add(spec.name);
+        if (spec.hidden && !this.hidden.includes(spec.name)) {
+          this.hidden.push(spec.name);
+        }
       }
       if (spec.width !== undefined && this.widths[spec.name] === undefined) {
         this.widths[spec.name] = spec.width;
@@ -845,7 +853,12 @@ export class EnaGrid extends EventTarget {
     const known = this.columns.map((c) => c.name);
     const keep = (names: string[] | undefined): string[] =>
       (names ?? []).filter((name) => known.length === 0 || known.includes(name));
-    if (layout.order) this.order = keep(layout.order);
+    if (layout.order) {
+      this.order = keep(layout.order);
+      // Every column the saved layout knew about has had its default applied
+      // already; re-applying would undo the user's own visibility choices.
+      this.defaulted = new Set(layout.order);
+    }
     if (layout.pinned) this.pinned = keep(layout.pinned);
     if (layout.hidden) this.hidden = keep(layout.hidden);
     if (layout.widths) this.widths = { ...layout.widths };
