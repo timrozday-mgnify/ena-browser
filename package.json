@@ -1,6 +1,6 @@
 {
   "name": "ena-browser",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "./dist/ena-browser.js",
   "types": "./dist/ena-browser.d.ts",
