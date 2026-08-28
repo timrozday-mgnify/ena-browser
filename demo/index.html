@@ -106,15 +106,12 @@
       <button id="clear-events" type="button">Clear log</button>
     </div>
 
-    <fieldset id="ena-credentials">
-      <legend>Load from ENA (Webin Reports API)</legend>
-      <label>Webin ID <input id="webin-id" autocomplete="off" /></label>
-      <label>Password <input id="webin-password" type="password" autocomplete="off" /></label>
-      <label><input id="webin-test" type="checkbox" checked /> test service</label>
-      <button id="load-ena" type="button">Load from ENA</button>
-      <span id="ena-status"></span>
-      <!-- Credentials are held in memory only; never localStorage. -->
-    </fieldset>
+    <!--
+      No credentials here, and no "load from ENA" button: this element makes no
+      ENA request. The host fetches rows (ena-submission-toolkit's
+      records.list_records, over ena-api-client) and calls setRows(); the demo
+      uses the JSON fixtures the test suite uses.
+    -->
 
     <div class="demo-layout">
       <ena-browser id="browser" entity="samples" selection-mode="multi"></ena-browser>

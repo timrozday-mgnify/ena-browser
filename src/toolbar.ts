@@ -171,18 +171,68 @@ export class EnaToolbar {
       pin.addEventListener("click", () => {
         if (pinned) this.grid.unpin(column.name);
         else this.grid.pin(column.name);
-        this.closeColumnsMenu();
-        this.openColumnsMenu(anchor);
+        this.reopenColumnsMenu(anchor);
       });
       row.appendChild(pin);
+
+      // Only columns the user added: hiding is what you want for report fields.
+      if (column.custom) {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "Delete";
+        remove.dataset["role"] = "delete-column";
+        remove.dataset["column"] = column.name;
+        remove.addEventListener("click", () => {
+          this.grid.removeColumn(column.name);
+          this.reopenColumnsMenu(anchor);
+        });
+        row.appendChild(remove);
+      }
       menu.appendChild(row);
     }
+
+    menu.appendChild(this.addColumnRow(anchor));
 
     const rect = anchor.getBoundingClientRect();
     menu.style.left = `${rect.left + window.scrollX}px`;
     menu.style.top = `${rect.bottom + window.scrollY + 2}px`;
     document.body.appendChild(menu);
     this.columnsMenu = menu;
+  }
+
+  /** New-column name + Add, at the foot of the columns menu. */
+  private addColumnRow(anchor: HTMLElement): HTMLDivElement {
+    const row = document.createElement("div");
+    row.className = "ena-browser-add-column";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "New column";
+    input.dataset["role"] = "new-column";
+
+    const add = document.createElement("button");
+    add.type = "button";
+    add.textContent = "Add column";
+    add.dataset["role"] = "add-column";
+    const submit = (): void => {
+      const name = input.value.trim();
+      if (name === "") return;
+      this.grid.addColumn({ name });
+      this.reopenColumnsMenu(anchor);
+    };
+    add.addEventListener("click", submit);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submit();
+    });
+
+    row.appendChild(input);
+    row.appendChild(add);
+    return row;
+  }
+
+  private reopenColumnsMenu(anchor: HTMLElement): void {
+    this.closeColumnsMenu();
+    this.openColumnsMenu(anchor);
   }
 
   private closeColumnsMenu(): void {

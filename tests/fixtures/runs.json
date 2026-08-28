@@ -6,7 +6,9 @@
     "study_accession": "PRJEB10001",
     "sample_accession": "ERS4000001",
     "status": "PRIVATE",
-    "instrument_platform": "ILLUMINA"
+    "instrument_platform": "ILLUMINA",
+    "process_status": "COMPLETED",
+    "process_date": "2026-01-02T09:14:00"
   },
   {
     "accession": "ERR5000002",
@@ -15,7 +17,9 @@
     "study_accession": "PRJEB10001",
     "sample_accession": "ERS4000001",
     "status": "PRIVATE",
-    "instrument_platform": "ILLUMINA"
+    "instrument_platform": "ILLUMINA",
+    "process_status": "IN_PROGRESS",
+    "process_date": "2026-01-03T11:02:00"
   },
   {
     "accession": "ERR5000003",
@@ -24,7 +28,9 @@
     "study_accession": "PRJEB10001",
     "sample_accession": "ERS4000002",
     "status": "PUBLIC",
-    "instrument_platform": "OXFORD_NANOPORE"
+    "instrument_platform": "OXFORD_NANOPORE",
+    "process_status": "ERROR",
+    "process_date": "2026-01-03T11:40:00"
   },
   {
     "accession": "ERR5000004",
@@ -33,6 +39,8 @@
     "study_accession": "",
     "sample_accession": "",
     "status": "CANCELLED",
-    "instrument_platform": "ILLUMINA"
+    "instrument_platform": "ILLUMINA",
+    "process_status": "COMPLETED",
+    "process_date": "2026-01-02T09:14:00"
   }
 ]

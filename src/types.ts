@@ -20,6 +20,8 @@ export interface ColumnSpec {
   width?: number;
   readOnly?: boolean;
   hidden?: boolean;
+  /** Added at runtime (`addColumn()`), so the UI may delete it again. */
+  custom?: boolean;
 }
 
 export interface CustomColumnSpec {
@@ -121,6 +123,8 @@ export interface BrowserState {
   filters: FilterSpec[];
   sort: SortSpec[];
   selection: string[];
+  /** Row keys whose edits are excluded from the MODIFY change set. */
+  excluded?: string[];
 }
 
 export interface DataSource {
@@ -166,6 +170,7 @@ export interface EnaBrowserEventMap {
     source: EventSource;
   };
   "layout-change": { layout: Layout; source: EventSource };
+  "column-change": { columns: ColumnSpec[]; added?: string; removed?: string; source: EventSource };
   "theme-change": { theme: Theme; resolvedTheme: "light" | "dark" };
   error: { message: string };
 }

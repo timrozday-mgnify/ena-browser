@@ -39,6 +39,7 @@ registerAllModules();
 
 const SELECTION_COLUMN = "__selected__";
 const ACTIONS_COLUMN = "__actions__";
+const INCLUDE_COLUMN = "__include__";
 const DEFAULT_LICENSE = "non-commercial-and-evaluation";
 
 function themeName(theme: "light" | "dark"): string {
@@ -55,6 +56,8 @@ export class EnaGrid extends EventTarget {
   private customValues = new Map<string, Map<string, unknown>>();
   private selected: string[] = [];
   private lastKey: string | null = null;
+  /** Rows the user unticked in the include column — edit mode only. */
+  private excluded = new Set<string>();
 
   private columns: ColumnSpec[] = [];
   private order: string[] = [];
@@ -192,6 +195,7 @@ export class EnaGrid extends EventTarget {
     if (this.config.selectionMode && this.config.selectionMode !== "none") {
       names.push(SELECTION_COLUMN);
     }
+    if (this.config.mode === "edit") names.push(INCLUDE_COLUMN);
     if (this.rowActions.length > 0) names.push(ACTIONS_COLUMN);
     names.push(...this.pinned);
     names.push(...this.order.filter((n) => !this.pinned.includes(n)));
@@ -216,6 +220,7 @@ export class EnaGrid extends EventTarget {
   private hotColumns(): Handsontable.ColumnSettings[] {
     return this.displayOrder().map((name) => {
       if (name === SELECTION_COLUMN) return this.selectionColumn();
+      if (name === INCLUDE_COLUMN) return this.includeColumn();
       if (name === ACTIONS_COLUMN) return this.actionsColumn();
       if (this.isCustom(name)) return this.customColumn(name);
       const spec = this.specFor(name);
@@ -292,6 +297,89 @@ export class EnaGrid extends EventTarget {
       readOnly: false,
       className: "htCenter",
     };
+  }
+
+  /**
+   * "Include this row in the MODIFY". Ticked by default: the host builds the
+   * manifest from `getChangeSet()`, which drops the unticked rows.
+   */
+  private includeColumn(): Handsontable.ColumnSettings {
+    const values = (row: Row, value?: unknown): unknown => {
+      const key = rowKey(this.config.entity, row);
+      if (value === undefined) return !this.excluded.has(key);
+      this.setRowIncluded(key, value === true || value === "true");
+      return undefined;
+    };
+    return {
+      data: values as Handsontable.ColumnSettings["data"],
+      title: "\u2713",
+      type: "checkbox",
+      width: 32,
+      readOnly: false,
+      className: "htCenter",
+    };
+  }
+
+  private setRowIncluded(key: string, included: boolean): void {
+    if (key === "") return;
+    if (included) this.excluded.delete(key);
+    else this.excluded.add(key);
+    this.hot?.render();
+    this.emit("change", { changes: this.getChangeSet() });
+  }
+
+  /** Row keys whose edits are excluded from the change set. */
+  getExcluded(): string[] {
+    return [...this.excluded];
+  }
+
+  setExcluded(keys: string[]): void {
+    this.excluded = new Set(keys);
+    this.hot?.render();
+    this.emit("change", { changes: this.getChangeSet() });
+  }
+
+  // ------------------------------------------------------------ add / remove
+
+  /**
+   * Add an editable column that is not in the report — a sample attribute the
+   * user wants to set. Values land in the row like any other edit, so they
+   * reach the change set (and the host's MODIFY manifest) for free.
+   */
+  addColumn(spec: ColumnSpec): void {
+    const name = spec.name.trim();
+    if (name === "" || this.specFor(name) || isControlColumn(name)) return;
+    this.config.columns = [...(this.config.columns ?? []), { ...spec, name, custom: true }];
+    if (spec.readOnly !== true) {
+      this.config.editableColumns = [...(this.config.editableColumns ?? []), name];
+    }
+    this.rebuildColumns();
+    this.rebuild();
+    this.emit("column-change", { columns: this.listColumns(), added: name });
+  }
+
+  /** Delete a column added with `addColumn()`, its values and its edits. */
+  removeColumn(name: string): void {
+    if (!this.specFor(name)?.custom) return;
+    this.config.columns = (this.config.columns ?? []).filter((spec) => spec.name !== name);
+    this.config.editableColumns = (this.config.editableColumns ?? []).filter((n) => n !== name);
+    this.tracker.dropColumn(name);
+    // Also out of the data, or mergeColumns() re-derives it from the rows.
+    for (const row of this.rows) delete row[name];
+    for (const row of this.original.values()) delete row[name];
+    this.order = this.order.filter((n) => n !== name);
+    this.pinned = this.pinned.filter((n) => n !== name);
+    this.hidden = this.hidden.filter((n) => n !== name);
+    delete this.widths[name];
+    this.rebuildColumns();
+    this.rebuild();
+    this.emit("column-change", { columns: this.listColumns(), removed: name });
+    this.emit("change", { changes: this.getChangeSet() });
+  }
+
+  /** The config as the grid now holds it — `addColumn()` mutates it. */
+  getConfig(): EnaBrowserConfig {
+    return { ...this.config };
   }
 
   private customColumn(name: string): Handsontable.ColumnSettings {
@@ -830,12 +918,13 @@ export class EnaGrid extends EventTarget {
     this.emit("change", { changes: this.getChangeSet() });
   }
 
+  /** Pending edits, minus the rows unticked in the include column. */
   getChangeSet(): ChangeSet {
-    return this.tracker.get();
+    return { rows: this.tracker.get().rows.filter((row) => !this.excluded.has(row.key)) };
   }
 
   get pendingCount(): number {
-    return this.tracker.size;
+    return this.getChangeSet().rows.length;
   }
 
   clearChanges(): void {
@@ -873,11 +962,13 @@ export class EnaGrid extends EventTarget {
   /** One JSON-safe snapshot of everything the user can change. */
   getState(): BrowserState {
     return {
-      edits: this.getChangeSet().rows,
+      // Every tracked edit, excluded rows included — `excluded` is state too.
+      edits: this.tracker.get().rows,
       layout: this.getLayout(),
       filters: this.getFilters(),
       sort: this.getSort(),
       selection: this.getSelection(),
+      excluded: this.getExcluded(),
     };
   }
 
@@ -892,6 +983,7 @@ export class EnaGrid extends EventTarget {
       if (state.filters) this.setFilters(state.filters);
       if (state.sort) this.setSort(state.sort);
       if (state.edits) this.setEdits(state.edits);
+      if (state.excluded) this.setExcluded(state.excluded);
       if (state.selection) this.setSelection(state.selection);
     } finally {
       this.applying = false;
@@ -912,9 +1004,9 @@ export class EnaGrid extends EventTarget {
   }
 }
 
-/** The two columns the grid owns: they are controls, never data. */
+/** The columns the grid owns itself: they are controls, never data. */
 function isControlColumn(name: string): boolean {
-  return name === SELECTION_COLUMN || name === ACTIONS_COLUMN;
+  return name === SELECTION_COLUMN || name === ACTIONS_COLUMN || name === INCLUDE_COLUMN;
 }
 
-export { ACTIONS_COLUMN, SELECTION_COLUMN };
+export { ACTIONS_COLUMN, INCLUDE_COLUMN, SELECTION_COLUMN };

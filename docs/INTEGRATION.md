@@ -116,15 +116,25 @@ function assignReads(readGroup) {
 ```ts
 import "ena-browser"; // registers <ena-browser>
 import "ena-browser/style.css";
-import { enaReportsSource, type EnaBrowserElement } from "ena-browser";
+import type { DataSource, EnaBrowserElement } from "ena-browser";
+
+// The element makes no ENA request — a `DataSource` is whatever the host's
+// own backend exposes. That backend is where ENA lives: see
+// `ena_submission_toolkit.records.list_records`, which returns exactly these
+// rows (and `records.editable_columns(entity)` for `editableColumns`).
+const backend: DataSource = {
+  fetch: async ({ entity, signal }) => {
+    const response = await fetch(`/api/records/${entity}`, { signal });
+    if (!response.ok) throw new Error(`Records API returned ${response.status}`);
+    return (await response.json()).rows;
+  },
+};
 
 const element = document.createElement("ena-browser") as EnaBrowserElement;
 element.config = {
   entity: "runs",
   selectionMode: "multi",
-  // Optional adapter: talks to the Webin Reports API straight from the
-  // browser. Hosts with a backend pass `rows` instead.
-  source: enaReportsSource({ username, password, test: true }),
+  source: backend, // or `rows: [...]` if the host already has them
 };
 document.body.appendChild(element);
 await element.refresh();

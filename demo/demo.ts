@@ -1,14 +1,15 @@
 /**
- * The demo page: fixtures or live ENA, every event echoed into a panel, and a
+ * The demo page: fixture rows, every event echoed into a panel, and a
  * "+1 read" button proving the custom-column pairing mechanism end to end.
  *
- * This is also the seed of the standalone report browser, and the page the
- * Playwright suite drives.
+ * Fixtures, not live ENA: this element never makes an ENA request. The host
+ * fetches (see `ena-browser-ui`, whose backend calls
+ * `ena_submission_toolkit.records.list_records`) and calls `setRows()`. This
+ * is also the page the Playwright suite drives.
  */
 
 import "../src/index.js";
 import type { EnaBrowserElement } from "../src/element.js";
-import { enaReportsSource } from "../src/sources/enaReports.js";
 import type { Entity, Row } from "../src/types.js";
 
 import analyses from "../tests/fixtures/analyses.json";
@@ -32,7 +33,6 @@ const log = document.getElementById("events") as HTMLPreElement;
 const entitySelect = document.getElementById("entity") as HTMLSelectElement;
 const modeSelect = document.getElementById("mode") as HTMLSelectElement;
 const selectionSelect = document.getElementById("selection-mode") as HTMLSelectElement;
-const enaStatus = document.getElementById("ena-status") as HTMLSpanElement;
 
 const readsAssigned = new Map<string, number>();
 
@@ -116,18 +116,6 @@ document.getElementById("add-read")?.addEventListener("click", () => {
 
 document.getElementById("clear-events")?.addEventListener("click", () => {
   log.textContent = "events appear here";
-});
-
-document.getElementById("load-ena")?.addEventListener("click", async () => {
-  const username = (document.getElementById("webin-id") as HTMLInputElement).value;
-  const password = (document.getElementById("webin-password") as HTMLInputElement).value;
-  const test = (document.getElementById("webin-test") as HTMLInputElement).checked;
-  enaStatus.textContent = "loading…";
-  browser.applyConfig({
-    source: enaReportsSource({ username, password, test }),
-  });
-  await browser.refresh();
-  enaStatus.textContent = `${browser.getRows().length} rows`;
 });
 
 loadFixtures();

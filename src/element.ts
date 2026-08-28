@@ -10,6 +10,7 @@ import { EnaToolbar } from "./toolbar.js";
 import type {
   BrowserState,
   ChangeSet,
+  ColumnSpec,
   EnaBrowserConfig,
   Entity,
   FilterSpec,
@@ -28,6 +29,7 @@ const FORWARDED = [
   "row-action",
   "filter-change",
   "layout-change",
+  "column-change",
 ] as const;
 
 /** Structural changes need a fresh Handsontable; the rest are live updates. */
@@ -240,6 +242,41 @@ export class EnaBrowserElement extends HTMLElement {
 
   clearSelection(): void {
     this.grid?.clearSelection();
+  }
+
+  /**
+   * Add an editable column that is not in the report, e.g. a sample attribute
+   * to set. Its values are ordinary edits, so they land in `getChangeSet()`.
+   */
+  addColumn(spec: ColumnSpec | string): void {
+    this.grid?.addColumn(typeof spec === "string" ? { name: spec } : spec);
+    this.syncColumns();
+  }
+
+  /** Delete a column added with `addColumn()`, with its values and edits. */
+  removeColumn(name: string): void {
+    this.grid?.removeColumn(name);
+    this.syncColumns();
+  }
+
+  /** Row keys whose edits are excluded from the change set. */
+  getExcluded(): string[] {
+    return this.grid?.getExcluded() ?? [];
+  }
+
+  setExcluded(keys: string[]): void {
+    this.grid?.setExcluded(keys);
+  }
+
+  /** Keep our config in step with the grid's, so a rebuild keeps the column. */
+  private syncColumns(): void {
+    const config = this.grid?.getConfig();
+    if (!config) return;
+    this._config = {
+      ...this._config,
+      columns: config.columns,
+      editableColumns: config.editableColumns,
+    };
   }
 
   setCustomValues(column: string, values: Record<string, unknown> | Map<string, unknown>): void {

@@ -217,3 +217,13 @@
   font: inherit;
   cursor: pointer;
 }
+
+.ena-browser-columns-menu .ena-browser-add-column {
+  border-top: 1px solid var(--eb-line);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+
+.ena-browser-columns-menu .ena-browser-add-column input {
+  width: 8rem;
+}

@@ -258,8 +258,7 @@ what the Playwright specs drive, and it is a stable hook for hosts too.
 
 ## Phase 4 — The custom element
 
-Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
-`src/sources/enaReports.ts`.
+Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`.
 
 1. `EnaBrowserElement extends HTMLElement`:
    - Attributes (for HTML-only use): `entity`, `mode`, `selection-mode`,
@@ -272,12 +271,14 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
      `bubbles: true, composed: true`.
    - Delegates every method in README §3 to the grid.
 2. `src/sources/rows.ts` — `rowsSource(rows)`.
-3. `src/sources/enaReports.ts` — `enaReportsSource({ baseUrl, username, password, test })`.
-   Basic auth header, `AbortSignal` honoured, maps ENA's response array to plain
-   rows, throws a message the element surfaces via the `error` event. Default
-   `baseUrl`: the Webin Reports base used by `ena-api-client` (read the current
-   value out of `ena-api-client/ena_api/config.py` rather than guessing; test vs
-   production differ).
+3. ~~`src/sources/enaReports.ts` — an in-browser Webin Reports client.~~
+   **Built, then removed.** It was a second implementation of
+   `ena_api/reports.py` living in the wrong repo, and it put Webin credentials
+   in the page. All ENA interaction now sits in `ena-api-client` (transport)
+   and `ena-submission-toolkit` (`records.py`: listing, MODIFY, lifecycle
+   actions), server-side, where `ena-browser-ui` and
+   `mimicc-ena-submission-assistant` share one implementation. Hosts pass
+   `rows`, or a `DataSource` that calls their own backend.
 4. `src/index.ts` — `customElements.define("ena-browser", …)` (guarded against
    double registration), plus named exports of the classes, sources, and types.
 
@@ -356,19 +357,14 @@ Files: `src/element.ts`, `src/index.ts`, `src/sources/rows.ts`,
 
 ## Phase 6 — Standalone viability check + release
 
-1. Verify `enaReportsSource` against the real Webin Reports API from a browser.
-   If CORS blocks it, say so plainly in the README (§4 already flags this), keep
-   the adapter for same-origin/proxied deployments, and note that the standalone
-   app needs a tiny proxy. **Do not silently ship a broken promise.**
-
-   **Result (2026-08-27): CORS does not block it.** Both `www.ebi.ac.uk` and
-   `wwwdev.ebi.ac.uk` answer the `GET` + `Authorization` preflight with
-   `access-control-allow-origin: <requesting origin>` and
-   `access-control-allow-credentials: true`. A backend-free standalone app is
-   therefore viable. **Only the preflight was checked** — an authenticated
-   `GET` needs a real Webin account, so the end-to-end path stays unproven
-   until someone runs `demo/index.html` against their own credentials. README §4
-   records it in exactly those terms.
+1. ~~Verify `enaReportsSource` against the real Webin Reports API from a
+   browser.~~ **Superseded.** CORS turned out not to block it (both hosts
+   answer the `GET` + `Authorization` preflight permissively), so a
+   backend-free app was viable — but "viable" is not "right": it meant a second
+   Reports client to maintain and a Webin password held in the page. The
+   standalone app is [`ena-browser-ui`](https://github.com/timrozday-mgnify/ena-browser-ui),
+   whose Django backend calls `ena_submission_toolkit.records`, and the adapter
+   is gone. This element makes no ENA request at all.
 2. `docs/INTEGRATION.md` — a copy-pasteable snippet per consumer: the
    assistant's Records tab, the assistant's pairing panel, and an ESM import.
    **Written**, plus an event table and the theming contract.

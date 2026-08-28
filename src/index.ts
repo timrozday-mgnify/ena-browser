@@ -10,11 +10,6 @@ export { EnaBrowserElement } from "./element.js";
 export { EnaGrid } from "./grid.js";
 export { EnaToolbar } from "./toolbar.js";
 export { rowsSource } from "./sources/rows.js";
-export {
-  enaReportsSource,
-  reportsBaseUrl,
-  type EnaReportsSourceOptions,
-} from "./sources/enaReports.js";
 export { ChangeTracker, diffRow } from "./changes.js";
 export { DEFAULT_COLUMNS, STATUS, mergeColumns, normalizeStatus, rowKey } from "./entities.js";
 export {

@@ -88,6 +88,15 @@ export class ChangeTracker {
     }
   }
 
+  /** Forget every edit to one column — what deleting that column means. */
+  dropColumn(column: string): void {
+    for (const [key, tracked] of this.rows) {
+      delete tracked.before[column];
+      delete tracked.after[column];
+      if (Object.keys(tracked.after).length === 0) this.rows.delete(key);
+    }
+  }
+
   clear(): void {
     this.rows.clear();
   }
