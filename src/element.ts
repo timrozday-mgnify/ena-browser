@@ -93,6 +93,16 @@ export class EnaBrowserElement extends HTMLElement {
   private build(): void {
     this.classList.add("ena-browser");
     const gridHost = document.createElement("div");
+    if (this._config.height !== undefined) {
+      this.style.height =
+        typeof this._config.height === "number" ? `${this._config.height}px` : this._config.height;
+    }
+    // Handsontable reads the computed overflow of its host's ancestors when it
+    // decides what scrolls it — on a detached host it finds nothing and falls
+    // back to the window, and the column headers then never track a horizontal
+    // scroll. So the host is in the document before the grid is built.
+    this.applyTheme();
+    this.appendChild(gridHost);
     this.grid = new EnaGrid(gridHost, this._config);
     for (const name of FORWARDED) {
       this.grid.addEventListener(name, (event) => {
@@ -105,14 +115,8 @@ export class EnaBrowserElement extends HTMLElement {
         );
       });
     }
-    this.applyTheme();
     this.toolbar = new EnaToolbar(this.grid, this._config);
-    this.appendChild(this.toolbar.element);
-    this.appendChild(gridHost);
-    if (this._config.height !== undefined) {
-      this.style.height =
-        typeof this._config.height === "number" ? `${this._config.height}px` : this._config.height;
-    }
+    this.insertBefore(this.toolbar.element, gridHost);
   }
 
   private teardown(): void {
