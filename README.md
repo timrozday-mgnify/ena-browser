@@ -354,8 +354,7 @@ Handsontable's CSS as well as the element's own (§2), and the element exposes
 `setSort()` but not `getSort()` — `filter-change` reports the current sort on
 every change.
 
-Not tagged yet. Consumers pin a git tag, so the first release is the gate on
-§9 below.
+Released as `v0.1.2`. Consumers pin an immutable git tag.
 
 ## 9. Consumers
 
